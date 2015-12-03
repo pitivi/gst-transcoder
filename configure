@@ -1,0 +1,20 @@
+#!/bin/sh
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+rm -Rf build > /dev/null 2>&1
+mkdir build/ && cd build && meson ../ $@
+
+cat <<EOF > $DIR/Makefile
+all:
+	cd build && ninja
+
+install:
+	cd build && ninja install
+
+clean:
+	rm -Rf build
+	rm Makefile
+
+EOF
+
