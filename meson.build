@@ -2,10 +2,12 @@ project('gst-renderer', 'c')
 
 subdir('common/meson')
 
+GST_DEP_VERSION = '>= 1.6'
+
 gobject_dep = dependency('gobject-2.0')
 glib_dep = dependency('glib-2.0')
-gst_dep = dependency('gstreamer-' + apiversion, version: '>= 1.5')
-gst_pbutils_dep = dependency('gstreamer-pbutils-' + apiversion)
+gst_dep = dependency('gstreamer-' + apiversion, version: GST_DEP_VERSION)
+gst_pbutils_dep = dependency('gstreamer-pbutils-' + apiversion, version: GST_DEP_VERSION)
 
 # The GstTranscoder library
 install_headers('gst-libs/gst/transcoding/transcoder/gsttranscoder.h')
