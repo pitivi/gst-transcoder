@@ -965,7 +965,6 @@ gst_transcoder_main (gpointer data)
   self->current_state = GST_STATE_NULL;
   if (self->transcodebin) {
     gst_element_set_state (self->transcodebin, GST_STATE_NULL);
-    GST_ERROR_OBJECT (self, "Num refs: %d", G_OBJECT (self->transcodebin)->ref_count);
     g_clear_object (&self->transcodebin);
   }
 
@@ -989,20 +988,21 @@ gst_transcoder_init_once (G_GNUC_UNUSED gpointer user_data)
 static GstEncodingProfile *
 create_encoding_profile (const gchar * pname)
 {
-  GstEncodingProfile *res;
-  gchar **split;
-  gint split_length;
+  GstEncodingProfile *profile;
+  GValue value = G_VALUE_INIT;
 
-  /* Splitup */
-  split = g_strsplit (pname, "/", 3);
-  split_length = g_strv_length (split);
+  g_value_init (&value, GST_TYPE_ENCODING_PROFILE);
 
-  res = gst_encoding_profile_find (split[0],
-      split_length > 1 ? split[1] : NULL, split_length == 3 ? split[2] : NULL);
+  if (!gst_value_deserialize (&value, pname)) {
+    g_value_reset (&value);
 
-  g_strfreev (split);
+    return NULL;
+  }
 
-  return res;
+  profile = g_value_dup_object (&value);
+  g_value_reset (&value);
+
+  return profile;
 }
 
 /**
