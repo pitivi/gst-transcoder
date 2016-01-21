@@ -1,9 +1,15 @@
 project('gst-renderer', 'c', meson_version : '>= 0.28.0')
 
+gst_major = 1
+gst_minor = 7
+gst_micro = 0
+gst_nano = 1
 subdir('common/meson')
 
-VERSION='1.7.0.1'
-GST_DEP_VERSION = '>= 1.6'
+# Commented for release versions
+gst_version = '@0@.@1@'.format(gst_version, gst_nano)
+
+GST_DEP_VERSION = '>= @0@.@1@'.format(gst_major, gst_minor)
 
 gobject_dep = dependency('gobject-2.0')
 glib_dep = dependency('glib-2.0')
@@ -38,7 +44,7 @@ girtargets = gnome.generate_gir(gst_transcoder,
 pkg_mod = import('pkgconfig')
 pkg_mod.generate(libraries : gst_transcoder,
       subdirs : ['gstreamer-' + apiversion],
-      version : VERSION,
+      version : gst_version,
       name : 'libgsttranscoder',
       filebase :'gst-transcoder-' + apiversion,
       description : 'A high level API to do media transcoding with GStreamer.')
