@@ -2,6 +2,7 @@ project('gst-renderer', 'c', meson_version : '>= 0.28.0')
 
 subdir('common/meson')
 
+VERSION='1.7.1'
 GST_DEP_VERSION = '>= 1.6'
 
 gobject_dep = dependency('gobject-2.0')
@@ -10,7 +11,8 @@ gst_dep = dependency('gstreamer-' + apiversion, version: GST_DEP_VERSION)
 gst_pbutils_dep = dependency('gstreamer-pbutils-' + apiversion, version: GST_DEP_VERSION)
 
 # The GstTranscoder library
-install_headers('gst-libs/gst/transcoding/transcoder/gsttranscoder.h')
+install_headers('gst-libs/gst/transcoding/transcoder/gsttranscoder.h',
+                subdir : 'gstreamer-' + apiversion + '/gst/transcoder')
 gst_transcoder = shared_library('gsttranscoder',
   'gst-libs/gst/transcoding/transcoder/gsttranscoder.c',
   install: true,
@@ -32,6 +34,14 @@ girtargets = gnome.generate_gir(gst_transcoder,
   install : true,
   extra_args : ['--add-init-section=gst_init(NULL,NULL);']
 )
+
+pkg_mod = import('pkgconfig')
+pkg_mod.generate(libraries : gst_transcoder,
+      subdirs : ['gstreamer-' + apiversion],
+      version : VERSION,
+      name : 'libgsttranscoder',
+      filebase :'gst-transcoder-' + apiversion,
+      description : 'A high level API to do media transcoding with GStreamer.')
 
 gst_c_args = ['-DHAVE_CONFIG_H',
   '-D_GNU_SOURCE',
