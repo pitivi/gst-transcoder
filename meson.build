@@ -2,12 +2,12 @@ project('gst-renderer', 'c', meson_version : '>= 0.28.0')
 
 gst_major = 1
 gst_minor = 7
-gst_micro = 0
-gst_nano = 1
+gst_micro = 1
+gst_nano = 0
 subdir('common/meson')
 
 # Commented for release versions
-gst_version = '@0@.@1@'.format(gst_version, gst_nano)
+# gst_version = '@0@.@1@'.format(gst_version, gst_nano)
 
 GST_DEP_VERSION = '>= @0@.@1@'.format(gst_major, gst_minor)
 
