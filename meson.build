@@ -1,4 +1,4 @@
-project('gst-renderer', 'c')
+project('gst-renderer', 'c', meson_version : '>= 0.28.0')
 
 subdir('common/meson')
 
