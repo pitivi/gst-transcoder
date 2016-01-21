@@ -2,7 +2,7 @@ project('gst-renderer', 'c', meson_version : '>= 0.28.0')
 
 subdir('common/meson')
 
-VERSION='1.7.1'
+VERSION='1.7.0.1'
 GST_DEP_VERSION = '>= 1.6'
 
 gobject_dep = dependency('gobject-2.0')
