@@ -19,7 +19,7 @@ gst_pbutils_dep = dependency('gstreamer-pbutils-' + apiversion, version: GST_DEP
 # The GstTranscoder library
 install_headers('gst-libs/gst/transcoding/transcoder/gsttranscoder.h',
                 subdir : 'gstreamer-' + apiversion + '/gst/transcoder')
-gst_transcoder = shared_library('gsttranscoder',
+gst_transcoder = shared_library('gsttranscoder-' + apiversion,
   'gst-libs/gst/transcoding/transcoder/gsttranscoder.c',
   install: true,
   dependencies: [glib_dep, gobject_dep, gst_dep, gst_pbutils_dep],
@@ -45,7 +45,7 @@ pkg_mod = import('pkgconfig')
 pkg_mod.generate(libraries : gst_transcoder,
       subdirs : ['gstreamer-' + apiversion],
       version : gst_version,
-      name : 'libgsttranscoder',
+      name : 'libgsttranscoder-' + apiversion,
       filebase :'gst-transcoder-' + apiversion,
       description : 'A high level API to do media transcoding with GStreamer.')
 
