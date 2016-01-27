@@ -38,7 +38,7 @@ girtargets = gnome.generate_gir(gst_transcoder,
               'GstPbutils-' + apiversion],
   dependencies: [gst_dep],
   install : true,
-  extra_args : ['--add-init-section=gst_init(NULL,NULL);']
+  extra_args : ['--add-init-section=extern gboolean gst_init(gint *argc, gchar **argv); gst_init(NULL,NULL);']
 )
 
 pkg_mod = import('pkgconfig')
