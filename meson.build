@@ -19,11 +19,13 @@ gst_pbutils_dep = dependency('gstreamer-pbutils-' + apiversion, version: GST_DEP
 # The GstTranscoder library
 install_headers('gst-libs/gst/transcoding/transcoder/gsttranscoder.h',
                 subdir : 'gstreamer-' + apiversion + '/gst/transcoder')
+
 gst_transcoder = shared_library('gsttranscoder-' + apiversion,
   'gst-libs/gst/transcoding/transcoder/gsttranscoder.c',
   install: true,
   dependencies: [glib_dep, gobject_dep, gst_dep, gst_pbutils_dep],
-  c_args: ['-Wno-pedantic'])
+  c_args: ['-Wno-pedantic'],
+  soversion : '0')
 
 gnome = import ('gnome')
 girtargets = gnome.generate_gir(gst_transcoder,
