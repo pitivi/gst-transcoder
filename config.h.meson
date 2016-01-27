@@ -1,4 +1,4 @@
-/* config.h.meson.  Generated from meson.  */
+/* config.h.in.  Generated from configure.ac by autoheader.  */
 
 /* GStreamer API Version */
 #mesondefine GST_API_VERSION
