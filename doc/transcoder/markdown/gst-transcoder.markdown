@@ -1,0 +1,15 @@
+### GstTranscoder
+
+* [GstTranscoder]()
+* [gst_transcoder_new]()
+* [gst_transcoder_run]()
+* [gst_transcoder_run_async]()
+* [gst_transcoder_get_source_uri]()
+* [gst_transcoder_get_dest_uri]()
+* [gst_transcoder_get_position]()
+* [gst_transcoder_get_duration]()
+* [gst_transcoder_set_cpu_usage]()
+* [gst_transcoder_new_full]()
+* [gst_transcoder_set_position_update_interval]()
+* [gst_transcoder_get_position_update_interval]()
+* [gst_transcoder_get_pipeline]()

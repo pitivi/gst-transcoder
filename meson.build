@@ -77,3 +77,13 @@ executable('gst-transcoder-' + apiversion,
   dependencies : [glib_dep, gobject_dep, gst_dep, gst_pbutils_dep],
   link_with: [gst_transcoder]
 )
+
+# FIXME Also check if the hotdoc c and gi extensions are avalaible
+hotdoc = find_program('hotdoc', required: false)
+if hotdoc.found()
+  custom_target('gst-transcoder-documentation',
+    input: 'doc/transcoder/hotdoc.json',
+    output: 'html',
+    command: [hotdoc, 'run', '--conf-file', '@INPUT@']
+  )
+endif
