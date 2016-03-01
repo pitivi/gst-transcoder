@@ -12,15 +12,28 @@ then
     exit 1
 fi
 
+NINJA=ninja
+which $NINJA > /dev/null 2>&1
+if [ $? != 0 ]
+then
+    NINJA=ninja-build
+    which $NINJA > /dev/null 2>&1
+    if [ $? != 0 ]
+    then
+      echo "You should install ninja-build' to build gst-transcoder: https://ninja-build.org/"
+      exit 1
+    fi
+fi
+
 rm -Rf build > /dev/null 2>&1
 mkdir build/ && cd build && meson ../ $@
 
 cat <<EOF > $DIR/Makefile
 all:
-	cd build && ninja
+	cd build && $NINJA
 
 install:
-	cd build && ninja install
+	cd build && $NINJA install
 
 clean:
 	rm -Rf build
