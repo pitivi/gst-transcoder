@@ -2,14 +2,20 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-which meson > /dev/null 2>&1
+MESON=meson
+which $MESON > /dev/null 2>&1
 if [ $? != 0 ]
 then
-    echo "You should install mesonbuild to build gst-transcoder: http://mesonbuild.com/"
-    echo "You can simply install it with:"
-    echo "    $ sudo pip3 install meson"
+    MESON=meson.py
+    which $MESON > /dev/null 2>&1
+    if [ $? != 0 ]
+    then
+        echo "You should install mesonbuild to build gst-transcoder: http://mesonbuild.com/"
+        echo "You can simply install it with:"
+        echo "    $ sudo pip3 install meson"
 
-    exit 1
+        exit 1
+    fi
 fi
 
 NINJA=ninja
@@ -26,7 +32,7 @@ then
 fi
 
 rm -Rf build > /dev/null 2>&1
-mkdir build/ && cd build && meson ../ $@
+mkdir build/ && cd build && $MESON ../ $@
 
 cat <<EOF > $DIR/Makefile
 all:
