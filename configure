@@ -3,11 +3,11 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 MESON=meson
-which $MESON > /dev/null 2>&1
+command -v $MESON > /dev/null 2>&1
 if [ $? != 0 ]
 then
     MESON=meson.py
-    which $MESON > /dev/null 2>&1
+    command -v $MESON > /dev/null 2>&1
     if [ $? != 0 ]
     then
         echo "You should install mesonbuild to build gst-transcoder: http://mesonbuild.com/"
@@ -19,11 +19,11 @@ then
 fi
 
 NINJA=ninja
-which $NINJA > /dev/null 2>&1
+command -v $NINJA > /dev/null 2>&1
 if [ $? != 0 ]
 then
     NINJA=ninja-build
-    which $NINJA > /dev/null 2>&1
+    command -v $NINJA > /dev/null 2>&1
     if [ $? != 0 ]
     then
       echo "You should install ninja-build' to build gst-transcoder: https://ninja-build.org/"
