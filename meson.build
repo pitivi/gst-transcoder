@@ -1,9 +1,9 @@
 project('gst-renderer', 'c', meson_version : '>= 0.28.0')
 
 gst_major = 1
-gst_minor = 7
+gst_minor = 8
 gst_micro = 1
-gst_nano = 1
+gst_nano = 0
 subdir('common/meson')
 
 # Commented for release versions
