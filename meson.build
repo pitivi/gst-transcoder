@@ -4,7 +4,7 @@ project('gst-renderer', 'c',
 
 subdir('common/meson')
 
-GST_DEP_VERSION = '>= @0@.@1@'.format(meson.project_version())
+GST_DEP_VERSION = '>= @0@'.format(meson.project_version())
 
 gobject_dep = dependency('gobject-2.0')
 glib_dep = dependency('glib-2.0')
