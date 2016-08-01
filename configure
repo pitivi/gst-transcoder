@@ -1,49 +1,75 @@
-#!/bin/sh
+#!/usr/bin/env python3
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+"""Script for generating the Makefiles."""
 
-MESON=meson
-which $MESON > /dev/null 2>&1
-if [ $? != 0 ]
-then
-    MESON=meson.py
-    which $MESON > /dev/null 2>&1
-    if [ $? != 0 ]
-    then
-        echo "You should install mesonbuild to build gst-transcoder: http://mesonbuild.com/"
-        echo "You can simply install it with:"
-        echo "    $ sudo pip3 install meson"
+import os
+import sys
+import shutil
+import subprocess
 
-        exit 1
-    fi
-fi
+PROJECTNAME = "gst-transcoder"
 
-NINJA=ninja
-which $NINJA > /dev/null 2>&1
-if [ $? != 0 ]
-then
-    NINJA=ninja-build
-    which $NINJA > /dev/null 2>&1
-    if [ $? != 0 ]
-    then
-      echo "You should install ninja-build' to build gst-transcoder: https://ninja-build.org/"
-      exit 1
-    fi
-fi
-
-rm -Rf build > /dev/null 2>&1
-mkdir build/ && cd build && $MESON ../ $@
-
-cat <<EOF > $DIR/Makefile
-all:
-	cd build && $NINJA
+ROOTDIR = os.path.abspath(os.path.dirname(__file__))
+MAKEFILE_TMPL = """all:
+%(tab)scd %(build_dir)s && %(ninja)s
 
 install:
-	cd build && $NINJA install
+%(tab)scd %(build_dir)s && DESTDIR="${DESTDIR}" %(ninja)s install
+
+check:
+%(tab)scd %(build_dir)s && %(ninja)s test
+
+dist:
+%(tab)scd %(build_dir)s && %(ninja)s dist
 
 clean:
-	rm -Rf build
-	rm Makefile
+%(tab)srm -Rf %(build_dir)s
+%(tab)srm Makefile
+"""
 
-EOF
 
+def accept_command(commands):
+    """Checks if @command --version works."""
+    for command in commands:
+        try:
+            subprocess.check_output([command, "--version"])
+            return command
+        except FileNotFoundError:
+            pass
+
+    return None
+
+
+def configure_meson():
+    """Configures meson and generate the Makefile."""
+    meson = accept_command(["meson", "meson.py"])
+    if not meson:
+        print("Install mesonbuild to build %s: http://mesonbuild.com/\n"
+              "You can simply install it with:\n"
+              "    $ sudo pip3 install meson" % PROJECTNAME)
+        exit(1)
+
+    ninja = accept_command(["ninja", "ninja-build"])
+    if not ninja:
+        print("Install ninja-build to build %s: https://ninja-build.org/"
+              % PROJECTNAME)
+        exit(1)
+
+    build_dir = os.path.join(ROOTDIR, "mesonbuild")
+    shutil.rmtree(build_dir, True)
+    os.mkdir(build_dir)
+    os.chdir(build_dir)
+
+    try:
+        subprocess.check_call([meson, "../"] + sys.argv[1:])
+    except subprocess.CalledProcessError:
+        exit(1)
+
+    with open(os.path.join(ROOTDIR, "Makefile"), "w") as makefile:
+        print(MAKEFILE_TMPL % {"build_dir": build_dir,
+                               "ninja": ninja,
+                               "tab": "	"},
+              file=makefile)
+
+if __name__ == "__main__":
+    configure_meson()
