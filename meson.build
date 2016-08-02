@@ -1,5 +1,5 @@
 project('gst-renderer', 'c',
-        version : '1.8.1.1',
+        version : '1.8.2',
         meson_version : '>= 0.28.0')
 
 subdir('common/meson')
