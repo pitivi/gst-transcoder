@@ -1,8 +1,36 @@
 project('gst-renderer', 'c',
-        version : '1.9.0.1',
-        meson_version : '>= 0.28.0')
+        version : '1.10.0',
+        meson_version : '>= 0.36.0')
 
-subdir('common/meson')
+gst_version = meson.project_version()
+version_arr = gst_version.split('.')
+gst_version_major = version_arr[0]
+gst_version_minor = version_arr[1]
+gst_version_micro = version_arr[2]
+if version_arr.length() == 4
+  gst_version_nano = version_arr[3]
+else
+  gst_version_nano = 0
+endif
+
+apiversion = '1.0'
+soversion = 0
+
+prefix = get_option('prefix')
+
+cc = meson.get_compiler('c')
+cdata = configuration_data()
+cdata.set('GST_LICENSE', '"LGPL"')
+cdata.set('GST_PACKAGE_ORIGIN', '"c"')
+cdata.set('GST_PACKAGE_NAME', '"GStreamer Transcoder source release"')
+cdata.set('PACKAGE', '"gst-transcoder"')
+cdata.set('VERSION', '"@0@"'.format(gst_version))
+
+if cc.has_function('getrusage', prefix : '#include<sys/resource.h>')
+  cdata.set('HAVE_GETRUSAGE', 1)
+endif
+
+configure_file(output : 'config.h', configuration : cdata)
 
 GST_DEP_VERSION = '>= @0@'.format(meson.project_version())
 
@@ -54,9 +82,7 @@ gst_c_args = ['-DHAVE_CONFIG_H',
   '-DGST_DISABLE_DEPRECATED',
 ]
 
-configure_file(input : 'common/meson/config.h.meson',
-  output : 'config.h',
-  configuration : cdata)
+configure_file(output : 'config.h', configuration : cdata)
 
 gst_transcoder_plugin = shared_library('gsttranscoderplugin',
   'gst/transcode/gsttranscodebin.c',
