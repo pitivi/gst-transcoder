@@ -1,5 +1,5 @@
 project('gst-renderer', 'c',
-        version : '1.10.0',
+        version : '1.11.0.1',
         meson_version : '>= 0.36.0')
 
 gst_version = meson.project_version()
