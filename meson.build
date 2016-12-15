@@ -32,12 +32,14 @@ endif
 
 configure_file(output : 'config.h', configuration : cdata)
 
-GST_DEP_VERSION = '>= @0@'.format(meson.project_version())
+gst_req = '>= @0@.@1@.0'.format(gst_version_major, gst_version_minor)
 
 gobject_dep = dependency('gobject-2.0')
 glib_dep = dependency('glib-2.0')
-gst_dep = dependency('gstreamer-' + apiversion, version: GST_DEP_VERSION)
-gst_pbutils_dep = dependency('gstreamer-pbutils-' + apiversion, version: GST_DEP_VERSION)
+gst_dep = dependency('gstreamer-1.0', version : gst_req,
+  fallback : ['gstreamer', 'gst_dep'])
+gst_pbutils_dep = dependency('gstreamer-pbutils-1.0', version : gst_req,
+    fallback : ['gst-plugins-base', 'pbutils_dep'])
 
 # The GstTranscoder library
 install_headers('gst-libs/gst/transcoding/transcoder/gsttranscoder.h',
@@ -100,3 +102,5 @@ executable('gst-transcoder-' + apiversion,
   dependencies : [glib_dep, gobject_dep, gst_dep, gst_pbutils_dep],
   link_with: [gst_transcoder]
 )
+
+run_command(python3, '-c', 'import shutil; shutil.copy("hooks/pre-commit.hook", ".git/hooks/pre-commit")')
