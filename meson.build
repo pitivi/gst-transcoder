@@ -1,4 +1,4 @@
-project('gst-renderer', 'c',
+project('gst-transcoder', 'c',
         version : '1.11.0.1',
         meson_version : '>= 0.36.0')
 
@@ -103,4 +103,10 @@ executable('gst-transcoder-' + apiversion,
   link_with: [gst_transcoder]
 )
 
+python3 = find_program('python3')
 run_command(python3, '-c', 'import shutil; shutil.copy("hooks/pre-commit.hook", ".git/hooks/pre-commit")')
+
+encoding_targetsdir = join_paths(get_option('datadir'),
+    'gstreamer-' + apiversion, 'encoding-profiles')
+encoding_targets = ['data/targets/web/youtube.gep']
+install_data(sources: encoding_targets, install_dir: encoding_targetsdir)

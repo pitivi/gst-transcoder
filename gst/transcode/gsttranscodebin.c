@@ -192,7 +192,7 @@ make_encodebin (GstTranscodeBin * self)
 
   self->encodebin = gst_element_factory_make ("encodebin", NULL);
   if (!self->encodebin)
-    goto no_decodebin;
+    goto no_encodebin;
 
   g_object_set (self->encodebin, "profile", self->profile, NULL);
 
@@ -212,7 +212,7 @@ make_encodebin (GstTranscodeBin * self)
   return gst_element_sync_state_with_parent (self->encodebin);
 
   /* ERRORS */
-no_decodebin:
+no_encodebin:
   {
     post_missing_plugin_error (GST_ELEMENT_CAST (self), "encodebin");
 

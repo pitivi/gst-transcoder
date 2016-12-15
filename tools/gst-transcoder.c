@@ -58,11 +58,46 @@ position_updated_cb (GstTranscoder * transcoder, GstClockTime pos)
   }
 }
 
+static GList *
+get_usable_profiles (GstEncodingTarget * target)
+{
+  GList *tmpprof, *usable_profiles = NULL;
+
+  for (tmpprof = (GList *) gst_encoding_target_get_profiles (target);
+      tmpprof; tmpprof = tmpprof->next) {
+    GstEncodingProfile *profile = tmpprof->data;
+    GstElement *tmpencodebin = gst_element_factory_make ("encodebin", NULL);
+
+    gst_encoding_profile_set_presence (profile, 1);
+    if (GST_IS_ENCODING_CONTAINER_PROFILE (profile)) {
+      GList *tmpsubprof;
+      for (tmpsubprof = (GList *)
+          gst_encoding_container_profile_get_profiles
+          (GST_ENCODING_CONTAINER_PROFILE (profile)); tmpsubprof;
+          tmpsubprof = tmpsubprof->next)
+        gst_encoding_profile_set_presence (tmpsubprof->data, 1);
+    }
+
+    g_object_set (tmpencodebin, "profile", gst_object_ref (profile), NULL);
+    GST_DEBUG_BIN_TO_DOT_FILE_WITH_TS (GST_BIN (tmpencodebin),
+        GST_DEBUG_GRAPH_SHOW_ALL, gst_encoding_profile_get_name (profile));
+
+    /* The profile could be expended */
+    if (GST_BIN (tmpencodebin)->children)
+      usable_profiles = g_list_prepend (usable_profiles, profile);
+
+    gst_object_unref (tmpencodebin);
+  }
+
+  return usable_profiles;
+}
+
 int
 main (int argc, char *argv[])
 {
   GError *err = NULL;
   gint cpu_usage = 100;
+  gboolean list_encoding_targets;
   GstTranscoder *transcoder;
   gchar *src_uri, *dest_uri;
   GOptionContext *ctx;
@@ -70,10 +105,12 @@ main (int argc, char *argv[])
   GOptionEntry options[] = {
     {"cpu-usage", 'c', 0, G_OPTION_ARG_INT, &cpu_usage,
         "The CPU usage to target in the transcoding process", NULL},
+    {"list-targets", 'l', G_OPTION_ARG_NONE, 0, &list_encoding_targets,
+        "List all encoding targets", NULL},
     {NULL}
   };
 
-  g_set_prgname ("gst-play");
+  g_set_prgname ("gst-transcoder");
 
   ctx = g_option_context_new ("<source uri> <destination uri> "
       "<encoding target name>[/<encoding profile name>]");
@@ -85,6 +122,36 @@ main (int argc, char *argv[])
     g_clear_error (&err);
     g_option_context_free (ctx);
     return 1;
+  }
+
+  if (list_encoding_targets) {
+    GList *tmp, *targets = gst_encoding_list_all_targets (NULL);
+
+    for (tmp = targets; tmp; tmp = tmp->next) {
+      GstEncodingTarget *target = tmp->data;
+      GList *usable_profiles = get_usable_profiles (target);
+
+      if (usable_profiles) {
+        GList *tmpprof;
+
+        g_print ("\n%s (%s): %s\n * Profiles:\n",
+            gst_encoding_target_get_name (target),
+            gst_encoding_target_get_category (target),
+            gst_encoding_target_get_description (target));
+
+        for (tmpprof = usable_profiles; tmpprof; tmpprof = tmpprof->next)
+          g_print ("     - %s: %s",
+              gst_encoding_profile_get_name (tmpprof->data),
+              gst_encoding_profile_get_description (tmpprof->data));
+
+        g_print ("\n");
+        g_list_free (usable_profiles);
+      }
+    }
+
+    g_list_free_full (targets, (GDestroyNotify) g_object_unref);
+
+    return 0;
   }
 
   if (argc != 4) {
