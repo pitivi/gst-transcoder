@@ -1018,6 +1018,9 @@ gst_transcoder_new (const gchar * source_uri,
 
   profile = create_encoding_profile (encoding_target);
 
+  if (!profile)
+    return NULL;
+
   return gst_transcoder_new_full (source_uri, dest_uri, profile, NULL);
 }
 
