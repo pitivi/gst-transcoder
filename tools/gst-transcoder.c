@@ -128,6 +128,27 @@ position_updated_cb (GstTranscoder * transcoder, GstClockTime pos)
   }
 }
 
+static gchar *
+get_file_extension (gchar * uri)
+{
+  size_t len;
+  gint find;
+
+  len = strlen (uri);
+  find = len - 1;
+
+  while (find >= 0) {
+    if (uri[find] == '.')
+      break;
+    find--;
+  }
+
+  if (find < 0)
+    return NULL;
+
+  return &uri[find + 1];
+}
+
 static GList *
 get_usable_profiles (GstEncodingTarget * target)
 {
@@ -170,7 +191,7 @@ main (int argc, char *argv[])
   gint cpu_usage = 100;
   gboolean list_encoding_targets;
   GstTranscoder *transcoder;
-  gchar *src_uri, *dest_uri;
+  gchar *src_uri, *dest_uri, *encoding_format = NULL;
   GOptionContext *ctx;
 
   GOptionEntry options[] = {
@@ -184,7 +205,7 @@ main (int argc, char *argv[])
   g_set_prgname ("gst-transcoder");
 
   ctx = g_option_context_new ("<source uri> <destination uri> "
-      "<encoding target name>[/<encoding profile name>]");
+      "[<encoding target name[/<encoding profile name>]]");
 
   g_option_context_add_main_entries (ctx, options, NULL);
   g_option_context_add_group (ctx, gst_init_get_option_group ());
@@ -194,6 +215,7 @@ main (int argc, char *argv[])
     g_option_context_free (ctx);
     return 1;
   }
+  gst_pb_utils_init ();
 
   if (list_encoding_targets) {
     GList *tmp, *targets = gst_encoding_list_all_targets (NULL);
@@ -225,7 +247,7 @@ main (int argc, char *argv[])
     return 0;
   }
 
-  if (argc != 4) {
+  if (argc < 3 || argc > 4) {
     g_print ("%s", g_option_context_get_help (ctx, TRUE, NULL));
     g_option_context_free (ctx);
 
@@ -235,6 +257,16 @@ main (int argc, char *argv[])
 
   src_uri = ensure_uri (argv[1]);
   dest_uri = ensure_uri (argv[2]);
+
+  if (argc == 3) {
+    encoding_format = get_file_extension (dest_uri);
+
+    if (!encoding_format)
+      goto no_extension;
+  } else {
+    encoding_format = argv[3];
+  }
+
   transcoder = gst_transcoder_new (src_uri, dest_uri, encoding_format);
   if (!transcoder) {
     error ("Could not find any encoding format for %s\n", encoding_format);
@@ -261,4 +293,10 @@ done:
   g_free (src_uri);
   return res;
 
+no_extension:
+  error ("No <encoding-format> specified and no extension"
+      " available in the output target: %s", dest_uri);
+  res = 1;
+
+  goto done;
 }
