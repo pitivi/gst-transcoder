@@ -1054,7 +1054,7 @@ _error_cb (GstTranscoder * self, GError * error, RunSyncData * data)
 {
   g_mutex_lock (&data->m);
   data->done = TRUE;
-  if (data->user_error && *data->user_error)
+  if (data->user_error && (*data->user_error) == NULL)
     g_propagate_error (data->user_error, g_error_copy (error));
   g_cond_broadcast (&data->cond);
   g_mutex_unlock (&data->m);

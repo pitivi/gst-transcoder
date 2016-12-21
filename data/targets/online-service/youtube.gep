@@ -1,6 +1,6 @@
 [GStreamer Encoding Target]
-name=youtube
-category=web
+name=youtube;yt
+category=online-service
 description=Recommended encoding settings for YouTube
 
 [profile-default]
