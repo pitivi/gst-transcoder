@@ -1,5 +1,5 @@
-#ifndef _gCODER
-#define _gCODER
+#ifndef __GST_TRANSCODER_H
+#define __GST_TRANSCODER_H
 
 #include <gst/gst.h>
 #include <gst/pbutils/pbutils.h>
@@ -21,7 +21,8 @@ typedef enum {
   GST_TRANSCODER_ERROR_FAILED = 0
 } GstTranscoderError;
 
-GType gst_transcoder_error_get_type (void);
+GQuark        gst_transcoder_error_quark    (void);
+GType         gst_transcoder_error_get_type (void);
 const gchar * gst_transcoder_error_get_name (GstTranscoderError error);
 
 /*********** GstTranscoder definition  ************/
@@ -108,4 +109,3 @@ GstTranscoderSignalDispatcher * gst_transcoder_g_main_context_signal_dispatcher_
 G_END_DECLS
 
 #endif
-

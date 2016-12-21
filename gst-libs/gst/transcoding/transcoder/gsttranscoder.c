@@ -38,7 +38,7 @@ GST_DEBUG_CATEGORY_STATIC (gst_transcoder_debug);
 #define DEFAULT_DURATION GST_CLOCK_TIME_NONE
 #define DEFAULT_POSITION_UPDATE_INTERVAL_MS 100
 
-static GQuark
+GQuark
 gst_transcoder_error_quark (void)
 {
   static GQuark quark;
