@@ -108,5 +108,22 @@ run_command(python3, '-c', 'import shutil; shutil.copy("hooks/pre-commit.hook", 
 
 encoding_targetsdir = join_paths(get_option('datadir'),
     'gstreamer-' + apiversion, 'encoding-profiles')
-encoding_targets = ['data/targets/web/youtube.gep']
-install_data(sources: encoding_targets, install_dir: encoding_targetsdir)
+
+encoding_targets = [
+  ['file-extension', ['data/targets/file-extension/ogv.gep',
+                      'data/targets/file-extension/oga.gep',
+                      'data/targets/file-extension/mkv.gep',
+                      'data/targets/file-extension/mp3.gep',
+                      'data/targets/file-extension/webm.gep',
+                      'data/targets/file-extension/flv.gep',
+                      'data/targets/file-extension/mp4.gep',
+                      'data/targets/file-extension/avi.gep',],
+  ],
+  ['online-services', ['data/targets/online-service/youtube.gep',]],
+]
+
+foreach path_targets : encoding_targets
+  dir = join_paths(encoding_targetsdir, path_targets.get(0))
+  etargets = path_targets.get(1)
+  install_data(sources: etargets, install_dir: dir)
+endforeach
