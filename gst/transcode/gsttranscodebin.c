@@ -194,9 +194,8 @@ make_encodebin (GstTranscodeBin * self)
   if (!self->encodebin)
     goto no_encodebin;
 
-  g_object_set (self->encodebin, "profile", self->profile, NULL);
-
   gst_bin_add (GST_BIN (self), self->encodebin);
+  g_object_set (self->encodebin, "profile", self->profile, NULL);
 
   pad = gst_element_get_static_pad (self->encodebin, "src");
   if (!gst_ghost_pad_set_target (GST_GHOST_PAD_CAST (self->srcpad), pad)) {
