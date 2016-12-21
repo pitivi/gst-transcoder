@@ -18,14 +18,41 @@
  * Boston, MA 02110-1301, USA.
  */
 
-/**
- * SECTION:gsttranscoder
- * @short_description: GStreamer Transcoder API
- *
- */
-
 #include <string.h>
 #include "../gst-libs/gst/transcoding/transcoder/gsttranscoder.h"
+
+static const gchar *HELP_SUMMARY =
+    "gst-transcoder-1.0 transcodes a stream defined by its first <input-uri>\n"
+    "argument to the place defined by its second <output-uri> argument\n"
+    "into the format described in its third <encoding-format> argument,\n"
+    "or using the given <output-uri> file extension.\n"
+    "\n"
+    "The <encoding-format> argument:\n"
+    "===============================\n"
+    "\n"
+    "If the encoding format is not defined, it will be guessed with\n"
+    "the given <output-uri> file extension."
+    "\n"
+    "<encoding-format> describe the media format into which the\n"
+    "input stream is going to be transcoded. We have two different\n"
+    "ways of describing the format:\n"
+    "\n"
+    "GstEncodingProfile serialization format\n"
+    "---------------------------------------\n"
+    "\n"
+    "GStreamer encoding profiles can be descibed with a quite extensive\n"
+    "syntax which is descibed in the GstEncodingProfile documentation.\n"
+    "\n"
+    "The simple case looks like:\n"
+    "\n"
+    "    muxer_source_caps:videoencoder_source_caps:audioencoder_source_caps\n"
+    "\n"
+    "Name and category of serialized GstEncodingTarget\n"
+    "-------------------------------------------------\n"
+    "\n"
+    "Encoding targets describe well known formats which\n"
+    "those are provided in '.gep' files. You can list\n"
+    "available ones using the `--list` argument.\n";
 
 static void
 print (GstDebugColorFlags c, gboolean err, gboolean nline, const gchar * format,
@@ -206,6 +233,7 @@ main (int argc, char *argv[])
 
   ctx = g_option_context_new ("<source uri> <destination uri> "
       "[<encoding target name[/<encoding profile name>]]");
+  g_option_context_set_summary (ctx, HELP_SUMMARY);
 
   g_option_context_add_main_entries (ctx, options, NULL);
   g_option_context_add_group (ctx, gst_init_get_option_group ());
