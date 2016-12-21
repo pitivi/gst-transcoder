@@ -27,6 +27,76 @@
 #include <string.h>
 #include "../gst-libs/gst/transcoding/transcoder/gsttranscoder.h"
 
+static void
+print (GstDebugColorFlags c, gboolean err, gboolean nline, const gchar * format,
+    va_list var_args)
+{
+  GString *str = g_string_new (NULL);
+  GstDebugColorMode color_mode;
+  gchar *color = NULL;
+  const gchar *clear = NULL;
+
+  color_mode = gst_debug_get_color_mode ();
+#ifdef G_OS_WIN32
+  if (color_mode == GST_DEBUG_COLOR_MODE_UNIX) {
+#else
+  if (color_mode != GST_DEBUG_COLOR_MODE_OFF) {
+#endif
+    clear = "\033[00m";
+    color = gst_debug_construct_term_color (c);
+  }
+
+  if (color) {
+    g_string_append (str, color);
+    g_free (color);
+  }
+
+  g_string_append_vprintf (str, format, var_args);
+
+  if (nline)
+    g_string_append_c (str, '\n');
+
+  if (clear)
+    g_string_append (str, clear);
+
+  if (err)
+    g_printerr ("%s", str->str);
+  else
+    g_print ("%s", str->str);
+
+  g_string_free (str, TRUE);
+}
+
+static void
+ok (const gchar * format, ...)
+{
+  va_list var_args;
+
+  va_start (var_args, format);
+  print (GST_DEBUG_FG_GREEN, FALSE, TRUE, format, var_args);
+  va_end (var_args);
+}
+
+static void
+warn (const gchar * format, ...)
+{
+  va_list var_args;
+
+  va_start (var_args, format);
+  print (GST_DEBUG_FG_YELLOW, TRUE, TRUE, format, var_args);
+  va_end (var_args);
+}
+
+static void
+error (const gchar * format, ...)
+{
+  va_list var_args;
+
+  va_start (var_args, format);
+  print (GST_DEBUG_FG_RED, TRUE, TRUE, format, var_args);
+  va_end (var_args);
+}
+
 static gchar *
 ensure_uri (const gchar * location)
 {
@@ -95,6 +165,7 @@ get_usable_profiles (GstEncodingTarget * target)
 int
 main (int argc, char *argv[])
 {
+  gint res = 0;
   GError *err = NULL;
   gint cpu_usage = 100;
   gboolean list_encoding_targets;
@@ -164,17 +235,30 @@ main (int argc, char *argv[])
 
   src_uri = ensure_uri (argv[1]);
   dest_uri = ensure_uri (argv[2]);
-  transcoder = gst_transcoder_new (src_uri, dest_uri, argv[3]);
+  transcoder = gst_transcoder_new (src_uri, dest_uri, encoding_format);
+  if (!transcoder) {
+    error ("Could not find any encoding format for %s\n", encoding_format);
+    warn ("You can list availaible targets using %s --list", argv[0]);
+    res = 1;
+    goto done;
+  }
+
   gst_transcoder_set_cpu_usage (transcoder, cpu_usage);
   g_signal_connect (transcoder, "position-updated",
       G_CALLBACK (position_updated_cb), NULL);
 
   g_assert (transcoder);
 
+  ok ("Starting transcoding...");
   gst_transcoder_run (transcoder, &err);
-
   if (err)
-    GST_ERROR ("Badam %s", err->message);
+    error ("\nFAILURE: %s", err->message);
+  else
+    ok ("\nDONE.");
 
-  return 0;
+done:
+  g_free (dest_uri);
+  g_free (src_uri);
+  return res;
+
 }
