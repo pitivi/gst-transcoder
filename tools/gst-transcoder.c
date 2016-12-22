@@ -200,6 +200,26 @@ list_encoding_targets (void)
   g_list_free_full (targets, (GDestroyNotify) g_object_unref);
 }
 
+static void
+_warning_cb (GstTranscoder * self, GError * error, GstStructure * details)
+{
+  gboolean cant_encode;
+  GstCaps *caps;
+
+  if (details && gst_structure_get (details, "can-t-encode-stream",
+          G_TYPE_BOOLEAN, &cant_encode, "stream-caps", GST_TYPE_CAPS,
+          &caps, NULL)) {
+    gchar *codec_desc = gst_pb_utils_get_codec_description (caps);
+
+    warn ("WARNING: Input stream encoded with %s can't be encoded", codec_desc);
+    gst_caps_unref (caps);
+    g_free (codec_desc);
+
+    return;
+  }
+  warn ("Got warning: %s", error->message);
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -285,6 +305,7 @@ main (int argc, char *argv[])
   gst_transcoder_set_cpu_usage (transcoder, cpu_usage);
   g_signal_connect (transcoder, "position-updated",
       G_CALLBACK (position_updated_cb), NULL);
+  g_signal_connect (transcoder, "warning", G_CALLBACK (_warning_cb), NULL);
 
   g_assert (transcoder);
 
