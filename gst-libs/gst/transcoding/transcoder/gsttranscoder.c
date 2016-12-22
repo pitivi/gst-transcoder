@@ -37,6 +37,7 @@ GST_DEBUG_CATEGORY_STATIC (gst_transcoder_debug);
 #define DEFAULT_POSITION GST_CLOCK_TIME_NONE
 #define DEFAULT_DURATION GST_CLOCK_TIME_NONE
 #define DEFAULT_POSITION_UPDATE_INTERVAL_MS 100
+#define DEFAULT_AVOID_REENCODING   FALSE
 
 GQuark
 gst_transcoder_error_quark (void)
@@ -60,6 +61,7 @@ enum
   PROP_DURATION,
   PROP_PIPELINE,
   PROP_POSITION_UPDATE_INTERVAL,
+  PROP_AVOID_REENCODING,
   PROP_LAST
 };
 
@@ -225,6 +227,11 @@ gst_transcoder_class_init (GstTranscoderClass * klass)
       0, 10000, DEFAULT_POSITION_UPDATE_INTERVAL_MS,
       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
+  param_specs[PROP_AVOID_REENCODING] =
+      g_param_spec_boolean ("avoid-reencoding", "Avoid re-encoding",
+      "Whether to re-encode portions of compatible video streams that lay on segment boundaries",
+      DEFAULT_AVOID_REENCODING, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
   g_object_class_install_properties (gobject_class, PROP_LAST, param_specs);
 
   signals[SIGNAL_POSITION_UPDATED] =
@@ -356,6 +363,10 @@ gst_transcoder_set_property (GObject * object, guint prop_id,
       self->profile = g_value_dup_object (value);
       GST_OBJECT_UNLOCK (self);
       break;
+    case PROP_AVOID_REENCODING:
+      g_object_set (self->transcodebin, "avoid-reencoding",
+          g_value_get_boolean (value), NULL);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -416,6 +427,15 @@ gst_transcoder_get_property (GObject * object, guint prop_id,
       g_value_set_object (value, self->profile);
       GST_OBJECT_UNLOCK (self);
       break;
+    case PROP_AVOID_REENCODING:
+    {
+      gboolean avoid_reencoding;
+
+      g_object_get (self->transcodebin, "avoid-reencoding", &avoid_reencoding,
+          NULL);
+      g_value_set_boolean (value, avoid_reencoding);
+      break;
+    }
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -1286,6 +1306,40 @@ gst_transcoder_get_pipeline (GstTranscoder * self)
   g_object_get (self, "pipeline", &val, NULL);
 
   return val;
+}
+
+/**
+ * gst_transcoder_get_avoid_reencoding:
+ * @self: The #GstTranscoder to check whether reencoding is avoided or not.
+ *
+ * Returns: %TRUE if the transcoder tries to avoid reencoding streams where
+ * reencoding is not strictly needed, %FALSE otherwise.
+ */
+gboolean
+gst_transcoder_get_avoid_reencoding (GstTranscoder * self)
+{
+  gboolean val;
+
+  g_return_val_if_fail (GST_IS_TRANSCODER (self), FALSE);
+
+  g_object_get (self->transcodebin, "avoid-reencoding", &val, NULL);
+
+  return val;
+}
+
+/**
+ * gst_transcoder_set_avoid_reencoding:
+ * @self: The #GstTranscoder to set whether reencoding should be avoided or not.
+ * @avoid_reencoding: %TRUE if the transcoder should try to avoid reencoding
+ * streams where * reencoding is not strictly needed, %FALSE otherwise.
+ */
+void
+gst_transcoder_set_avoid_reencoding (GstTranscoder * self,
+    gboolean avoid_reencoding)
+{
+  g_return_if_fail (GST_IS_TRANSCODER (self));
+
+  g_object_set (self->transcodebin, "avoid-reencoding", avoid_reencoding, NULL);
 }
 
 #define C_ENUM(v) ((gint) v)

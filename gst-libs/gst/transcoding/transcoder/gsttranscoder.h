@@ -71,6 +71,10 @@ GstClockTime gst_transcoder_get_duration                  (GstTranscoder * self)
 
 GstElement * gst_transcoder_get_pipeline                  (GstTranscoder * self);
 
+gboolean gst_transcoder_get_avoid_reencoding              (GstTranscoder * self);
+void gst_transcoder_set_avoid_reencoding                  (GstTranscoder * self,
+                                                           gboolean avoid_reencoding);
+
 
 /****************** Signal dispatcher *******************************/
 

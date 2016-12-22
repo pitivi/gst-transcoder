@@ -246,6 +246,7 @@ main (int argc, char *argv[])
   set_video_size (profile, size);
 
   transcoder = gst_transcoder_new_full (src_uri, dest_uri, profile, NULL);
+  gst_transcoder_set_avoid_reencoding (transcoder, TRUE);
 
   gst_transcoder_set_cpu_usage (transcoder, cpu_usage);
   g_signal_connect (transcoder, "position-updated",
