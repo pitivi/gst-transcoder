@@ -149,31 +149,43 @@ pad_added_cb (GstElement * decodebin, GstPad * pad, GstTranscodeBin * self)
 {
   GstCaps *caps;
   GstPad *sinkpad = NULL;
+  GstPadLinkReturn lret;
 
   caps = gst_pad_query_caps (pad, NULL);
 
   GST_DEBUG_OBJECT (decodebin, "Pad added, caps: %" GST_PTR_FORMAT, caps);
 
   g_signal_emit_by_name (self->encodebin, "request-pad", caps, &sinkpad);
-  if (caps)
-    gst_caps_unref (caps);
 
   if (sinkpad == NULL) {
-    GST_WARNING ("Couldn't get an encoding pad for pad %s:%s\n",
-        GST_DEBUG_PAD_NAME (pad));
+    GST_ELEMENT_WARNING_WITH_DETAILS (self, STREAM, FORMAT,
+        (NULL), ("Stream with caps: %" GST_PTR_FORMAT " can not be"
+            " encoded in the defined encoding formats",
+            caps),
+        ("can-t-encode-stream", G_TYPE_BOOLEAN, TRUE,
+            "stream-caps", GST_TYPE_CAPS, caps, NULL));
     return;
   }
 
+  if (caps)
+    gst_caps_unref (caps);
+
   pad = _insert_filter (self, sinkpad, pad, caps);
-  if (G_UNLIKELY (gst_pad_link (pad, sinkpad) != GST_PAD_LINK_OK)) {
+  lret = gst_pad_link (pad, sinkpad);
+  if (G_UNLIKELY (lret != GST_PAD_LINK_OK)) {
     GstCaps *othercaps = gst_pad_query_caps (sinkpad, NULL);
     caps = gst_pad_get_current_caps (pad);
 
-    GST_ELEMENT_ERROR (self, CORE, PAD,
+    GST_ELEMENT_ERROR_WITH_DETAILS (self, CORE, PAD,
         (NULL),
         ("Couldn't link pads:\n    %" GST_PTR_FORMAT ": %" GST_PTR_FORMAT
             "\nand:\n" "    %" GST_PTR_FORMAT ": %" GST_PTR_FORMAT "\n\n",
-            pad, caps, sinkpad, othercaps));
+            pad, caps, sinkpad, othercaps),
+        ("linking-error", GST_TYPE_PAD_LINK_RETURN, lret,
+            "source-pad", GST_TYPE_PAD, pad,
+            "source-caps", GST_TYPE_CAPS, caps,
+            "sink-pad", GST_TYPE_PAD, sinkpad,
+            "sink-caps", GST_TYPE_CAPS, othercaps, NULL));
 
     gst_caps_unref (caps);
     if (othercaps)
