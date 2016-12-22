@@ -19,6 +19,8 @@
  */
 
 #include <string.h>
+
+#include "utils.h"
 #include "../gst-libs/gst/transcoding/transcoder/gsttranscoder.h"
 
 static const gchar *HELP_SUMMARY =
@@ -55,85 +57,6 @@ static const gchar *HELP_SUMMARY =
     "available ones using the `--list` argument.\n";
 
 static void
-print (GstDebugColorFlags c, gboolean err, gboolean nline, const gchar * format,
-    va_list var_args)
-{
-  GString *str = g_string_new (NULL);
-  GstDebugColorMode color_mode;
-  gchar *color = NULL;
-  const gchar *clear = NULL;
-
-  color_mode = gst_debug_get_color_mode ();
-#ifdef G_OS_WIN32
-  if (color_mode == GST_DEBUG_COLOR_MODE_UNIX) {
-#else
-  if (color_mode != GST_DEBUG_COLOR_MODE_OFF) {
-#endif
-    clear = "\033[00m";
-    color = gst_debug_construct_term_color (c);
-  }
-
-  if (color) {
-    g_string_append (str, color);
-    g_free (color);
-  }
-
-  g_string_append_vprintf (str, format, var_args);
-
-  if (nline)
-    g_string_append_c (str, '\n');
-
-  if (clear)
-    g_string_append (str, clear);
-
-  if (err)
-    g_printerr ("%s", str->str);
-  else
-    g_print ("%s", str->str);
-
-  g_string_free (str, TRUE);
-}
-
-static void
-ok (const gchar * format, ...)
-{
-  va_list var_args;
-
-  va_start (var_args, format);
-  print (GST_DEBUG_FG_GREEN, FALSE, TRUE, format, var_args);
-  va_end (var_args);
-}
-
-static void
-warn (const gchar * format, ...)
-{
-  va_list var_args;
-
-  va_start (var_args, format);
-  print (GST_DEBUG_FG_YELLOW, TRUE, TRUE, format, var_args);
-  va_end (var_args);
-}
-
-static void
-error (const gchar * format, ...)
-{
-  va_list var_args;
-
-  va_start (var_args, format);
-  print (GST_DEBUG_FG_RED, TRUE, TRUE, format, var_args);
-  va_end (var_args);
-}
-
-static gchar *
-ensure_uri (const gchar * location)
-{
-  if (gst_uri_is_valid (location))
-    return g_strdup (location);
-  else
-    return gst_filename_to_uri (location, NULL);
-}
-
-static void
 position_updated_cb (GstTranscoder * transcoder, GstClockTime pos)
 {
   GstClockTime dur = -1;
@@ -155,59 +78,34 @@ position_updated_cb (GstTranscoder * transcoder, GstClockTime pos)
   }
 }
 
-static gchar *
-get_file_extension (gchar * uri)
+static void
+list_encoding_targets (void)
 {
-  size_t len;
-  gint find;
+  GList *tmp, *targets = gst_encoding_list_all_targets (NULL);
 
-  len = strlen (uri);
-  find = len - 1;
+  for (tmp = targets; tmp; tmp = tmp->next) {
+    GstEncodingTarget *target = tmp->data;
+    GList *usable_profiles = get_usable_profiles (target);
 
-  while (find >= 0) {
-    if (uri[find] == '.')
-      break;
-    find--;
-  }
+    if (usable_profiles) {
+      GList *tmpprof;
 
-  if (find < 0)
-    return NULL;
+      g_print ("\n%s (%s): %s\n * Profiles:\n",
+          gst_encoding_target_get_name (target),
+          gst_encoding_target_get_category (target),
+          gst_encoding_target_get_description (target));
 
-  return &uri[find + 1];
-}
+      for (tmpprof = usable_profiles; tmpprof; tmpprof = tmpprof->next)
+        g_print ("     - %s: %s",
+            gst_encoding_profile_get_name (tmpprof->data),
+            gst_encoding_profile_get_description (tmpprof->data));
 
-static GList *
-get_usable_profiles (GstEncodingTarget * target)
-{
-  GList *tmpprof, *usable_profiles = NULL;
-
-  for (tmpprof = (GList *) gst_encoding_target_get_profiles (target);
-      tmpprof; tmpprof = tmpprof->next) {
-    GstEncodingProfile *profile = tmpprof->data;
-    GstElement *tmpencodebin = gst_element_factory_make ("encodebin", NULL);
-
-    gst_encoding_profile_set_presence (profile, 1);
-    if (GST_IS_ENCODING_CONTAINER_PROFILE (profile)) {
-      GList *tmpsubprof;
-      for (tmpsubprof = (GList *)
-          gst_encoding_container_profile_get_profiles
-          (GST_ENCODING_CONTAINER_PROFILE (profile)); tmpsubprof;
-          tmpsubprof = tmpsubprof->next)
-        gst_encoding_profile_set_presence (tmpsubprof->data, 1);
+      g_print ("\n");
+      g_list_free (usable_profiles);
     }
-
-    g_object_set (tmpencodebin, "profile", gst_object_ref (profile), NULL);
-    GST_DEBUG_BIN_TO_DOT_FILE_WITH_TS (GST_BIN (tmpencodebin),
-        GST_DEBUG_GRAPH_SHOW_ALL, gst_encoding_profile_get_name (profile));
-
-    /* The profile could be expended */
-    if (GST_BIN (tmpencodebin)->children)
-      usable_profiles = g_list_prepend (usable_profiles, profile);
-
-    gst_object_unref (tmpencodebin);
   }
 
-  return usable_profiles;
+  g_list_free_full (targets, (GDestroyNotify) g_object_unref);
 }
 
 int
@@ -217,6 +115,7 @@ main (int argc, char *argv[])
   GError *err = NULL;
   gint cpu_usage = 100;
   gboolean list_encoding_targets;
+  gboolean list;
   GstTranscoder *transcoder;
   gchar *src_uri, *dest_uri, *encoding_format = NULL;
   GOptionContext *ctx;
@@ -224,7 +123,7 @@ main (int argc, char *argv[])
   GOptionEntry options[] = {
     {"cpu-usage", 'c', 0, G_OPTION_ARG_INT, &cpu_usage,
         "The CPU usage to target in the transcoding process", NULL},
-    {"list-targets", 'l', G_OPTION_ARG_NONE, 0, &list_encoding_targets,
+    {"list-targets", 'l', G_OPTION_ARG_NONE, 0, &list,
         "List all encoding targets", NULL},
     {NULL}
   };
@@ -237,6 +136,7 @@ main (int argc, char *argv[])
 
   g_option_context_add_main_entries (ctx, options, NULL);
   g_option_context_add_group (ctx, gst_init_get_option_group ());
+
   if (!g_option_context_parse (ctx, &argc, &argv, &err)) {
     g_print ("Error initializing: %s\n", GST_STR_NULL (err->message));
     g_clear_error (&err);
@@ -245,33 +145,8 @@ main (int argc, char *argv[])
   }
   gst_pb_utils_init ();
 
-  if (list_encoding_targets) {
-    GList *tmp, *targets = gst_encoding_list_all_targets (NULL);
-
-    for (tmp = targets; tmp; tmp = tmp->next) {
-      GstEncodingTarget *target = tmp->data;
-      GList *usable_profiles = get_usable_profiles (target);
-
-      if (usable_profiles) {
-        GList *tmpprof;
-
-        g_print ("\n%s (%s): %s\n * Profiles:\n",
-            gst_encoding_target_get_name (target),
-            gst_encoding_target_get_category (target),
-            gst_encoding_target_get_description (target));
-
-        for (tmpprof = usable_profiles; tmpprof; tmpprof = tmpprof->next)
-          g_print ("     - %s: %s",
-              gst_encoding_profile_get_name (tmpprof->data),
-              gst_encoding_profile_get_description (tmpprof->data));
-
-        g_print ("\n");
-        g_list_free (usable_profiles);
-      }
-    }
-
-    g_list_free_full (targets, (GDestroyNotify) g_object_unref);
-
+  if (list) {
+    list_encoding_targets ();
     return 0;
   }
 

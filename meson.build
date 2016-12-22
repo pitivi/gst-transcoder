@@ -97,7 +97,7 @@ gst_transcoder_plugin = shared_library('gsttranscoderplugin',
 )
 
 executable('gst-transcoder-' + apiversion,
-  'tools/gst-transcoder.c',
+  'tools/gst-transcoder.c', 'tools/utils.c',
   install : true,
   dependencies : [glib_dep, gobject_dep, gst_dep, gst_pbutils_dep],
   link_with: [gst_transcoder]
