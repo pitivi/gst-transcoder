@@ -201,6 +201,28 @@ list_encoding_targets (void)
 }
 
 static void
+_error_cb (GstTranscoder * self, GError * err, GstStructure * details)
+{
+  if (g_error_matches (err, GST_CORE_ERROR, GST_CORE_ERROR_PAD)) {
+    GstPadLinkReturn lret;
+    GType type;
+
+    if (details && gst_structure_get (details, "linking-error",
+            GST_TYPE_PAD_LINK_RETURN, &lret,
+            "msg-source-type", G_TYPE_GTYPE, &type, NULL) &&
+        type == g_type_from_name ("GstTranscodeBin")) {
+      error ("\nCould not setup transcoding pipeline,"
+          " make sure that you transcoding format parametters"
+          " are compatible with the input stream.");
+
+      return;
+    }
+  }
+
+  error ("\nFAILURE: %s", err->message);
+}
+
+static void
 _warning_cb (GstTranscoder * self, GError * error, GstStructure * details)
 {
   gboolean cant_encode;
@@ -306,14 +328,13 @@ main (int argc, char *argv[])
   g_signal_connect (transcoder, "position-updated",
       G_CALLBACK (position_updated_cb), NULL);
   g_signal_connect (transcoder, "warning", G_CALLBACK (_warning_cb), NULL);
+  g_signal_connect (transcoder, "error", G_CALLBACK (_error_cb), NULL);
 
   g_assert (transcoder);
 
   ok ("Starting transcoding...");
   gst_transcoder_run (transcoder, &err);
-  if (err)
-    error ("\nFAILURE: %s", err->message);
-  else
+  if (!err)
     ok ("\nDONE.");
 
 done:
