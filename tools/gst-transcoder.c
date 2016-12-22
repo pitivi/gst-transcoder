@@ -78,6 +78,67 @@ position_updated_cb (GstTranscoder * transcoder, GstClockTime pos)
   }
 }
 
+static gboolean
+set_video_size (GstEncodingProfile * profile, const gchar * value)
+{
+  GList *tmp, *video_profiles = NULL;
+  gchar *p, *tmpstr, **vsize;
+  gint width, height;
+
+  if (!value)
+    return TRUE;
+
+  p = tmpstr = g_strdup (value);
+
+  for (; *p; ++p)
+    *p = g_ascii_tolower (*p);
+
+  vsize = g_strsplit (tmpstr, "x", -1);
+  g_free (tmpstr);
+
+  if (!vsize[1] || vsize[2]) {
+    g_strfreev (vsize);
+    error ("Video size should be in the form: WxH, got %s", value);
+
+    return FALSE;
+  }
+
+  width = g_ascii_strtoull (vsize[0], NULL, 0);
+  height = g_ascii_strtoull (vsize[1], NULL, 10);
+
+  g_strfreev (vsize);
+
+  if (GST_IS_ENCODING_CONTAINER_PROFILE (profile)) {
+    for (tmp = (GList *)
+        gst_encoding_container_profile_get_profiles
+        (GST_ENCODING_CONTAINER_PROFILE (profile)); tmp; tmp = tmp->next) {
+      if (GST_IS_ENCODING_VIDEO_PROFILE (tmp->data)) {
+        video_profiles = g_list_prepend (video_profiles, tmp->data);
+      }
+    }
+  } else if (GST_IS_ENCODING_VIDEO_PROFILE (profile)) {
+    video_profiles = g_list_prepend (video_profiles, profile);
+  } else {
+    return TRUE;
+  }
+
+  for (tmp = video_profiles; tmp; tmp = tmp->next) {
+    GstCaps *rest = gst_encoding_profile_get_restriction (tmp->data);
+
+    if (!rest)
+      rest = gst_caps_new_empty_simple ("video/x-raw");
+    else
+      rest = gst_caps_copy (rest);
+
+    gst_caps_set_simple (rest, "width", G_TYPE_INT, width,
+        "height", G_TYPE_INT, height, NULL);
+
+    gst_encoding_profile_set_restriction (tmp->data, rest);
+  }
+
+  return TRUE;
+}
+
 static void
 list_encoding_targets (void)
 {
@@ -114,10 +175,10 @@ main (int argc, char *argv[])
   gint res = 0;
   GError *err = NULL;
   gint cpu_usage = 100;
-  gboolean list_encoding_targets;
   gboolean list;
+  GstEncodingProfile *profile;
   GstTranscoder *transcoder;
-  gchar *src_uri, *dest_uri, *encoding_format = NULL;
+  gchar *src_uri, *dest_uri, *encoding_format = NULL, *size = NULL;
   GOptionContext *ctx;
 
   GOptionEntry options[] = {
@@ -125,6 +186,10 @@ main (int argc, char *argv[])
         "The CPU usage to target in the transcoding process", NULL},
     {"list-targets", 'l', G_OPTION_ARG_NONE, 0, &list,
         "List all encoding targets", NULL},
+    {"size", 's', 0, G_OPTION_ARG_STRING, &size,
+        "set frame size (WxH or abbreviation)", NULL},
+    {"video-encoder", 'v', 0, G_OPTION_ARG_STRING, &size,
+        "The video encoder to use.", NULL},
     {NULL}
   };
 
@@ -170,13 +235,17 @@ main (int argc, char *argv[])
     encoding_format = argv[3];
   }
 
-  transcoder = gst_transcoder_new (src_uri, dest_uri, encoding_format);
-  if (!transcoder) {
+  profile = create_encoding_profile (encoding_format);
+  if (!profile) {
     error ("Could not find any encoding format for %s\n", encoding_format);
-    warn ("You can list availaible targets using %s --list", argv[0]);
+    warn ("You can list available targets using %s --list", argv[0]);
     res = 1;
     goto done;
   }
+
+  set_video_size (profile, size);
+
+  transcoder = gst_transcoder_new_full (src_uri, dest_uri, profile, NULL);
 
   gst_transcoder_set_cpu_usage (transcoder, cpu_usage);
   g_signal_connect (transcoder, "position-updated",
