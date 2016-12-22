@@ -166,16 +166,18 @@ pad_added_cb (GstElement * decodebin, GstPad * pad, GstTranscodeBin * self)
 
   pad = _insert_filter (self, sinkpad, pad, caps);
   if (G_UNLIKELY (gst_pad_link (pad, sinkpad) != GST_PAD_LINK_OK)) {
-    GstCaps *othercaps = gst_pad_get_current_caps (sinkpad);
+    GstCaps *othercaps = gst_pad_query_caps (sinkpad, NULL);
     caps = gst_pad_get_current_caps (pad);
 
     GST_ELEMENT_ERROR (self, CORE, PAD,
         (NULL),
-        ("Couldn't link pads \n\n%" GST_PTR_FORMAT "\n\n  and \n\n %"
-            GST_PTR_FORMAT "\n\n", caps, othercaps));
+        ("Couldn't link pads:\n    %" GST_PTR_FORMAT ": %" GST_PTR_FORMAT
+            "\nand:\n" "    %" GST_PTR_FORMAT ": %" GST_PTR_FORMAT "\n\n",
+            pad, caps, sinkpad, othercaps));
 
     gst_caps_unref (caps);
-    gst_caps_unref (othercaps);
+    if (othercaps)
+      gst_caps_unref (othercaps);
   }
 
   gst_object_unref (sinkpad);
