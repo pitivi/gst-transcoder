@@ -243,6 +243,32 @@ make_decodebin (GstTranscodeBin * self)
   if (!self->decodebin)
     goto no_decodebin;
 
+  if (self->avoid_reencoding) {
+    GstCaps *decodecaps;
+
+    g_object_get (self->decodebin, "caps", &decodecaps, NULL);
+    if (GST_IS_ENCODING_CONTAINER_PROFILE (self->profile)) {
+      GList *tmp;
+
+      decodecaps = gst_caps_make_writable (decodecaps);
+      for (tmp = (GList *)
+          gst_encoding_container_profile_get_profiles
+          (GST_ENCODING_CONTAINER_PROFILE (self->profile)); tmp;
+          tmp = tmp->next) {
+        GstCaps *encodecaps = gst_encoding_profile_get_format (tmp->data);
+        GstCaps *restrictions =
+            gst_encoding_profile_get_restriction (tmp->data);
+
+        if (!restrictions)
+          gst_caps_append (decodecaps, encodecaps);
+        else
+          gst_caps_unref (restrictions);
+      }
+    }
+    g_object_set (self->decodebin, "caps", decodecaps, NULL);
+    gst_caps_unref (decodecaps);
+  }
+
   g_signal_connect (self->decodebin, "pad-added", G_CALLBACK (pad_added_cb),
       self);
 

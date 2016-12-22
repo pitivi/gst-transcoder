@@ -112,7 +112,8 @@ make_transcodebin (GstUriTranscodeBin * self)
 
   g_object_set (self->transcodebin, "profile", self->profile,
       "video-filter", self->video_filter,
-      "audio-filter", self->audio_filter, NULL);
+      "audio-filter", self->audio_filter,
+      "avoid-reencoding", self->avoid_reencoding, NULL);
 
   gst_bin_add (GST_BIN (self), self->transcodebin);
   if (!gst_element_link (self->transcodebin, self->sink))
