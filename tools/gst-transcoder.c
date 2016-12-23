@@ -218,7 +218,7 @@ list_encoding_targets (void)
 }
 
 static void
-_error_cb (GstTranscoder * self, GError * err, GstStructure * details)
+_error_cb (GstTranscoder * transcoder, GError * err, GstStructure * details)
 {
   if (g_error_matches (err, GST_CORE_ERROR, GST_CORE_ERROR_PAD)) {
     GstPadLinkReturn lret;
@@ -240,19 +240,26 @@ _error_cb (GstTranscoder * self, GError * err, GstStructure * details)
 }
 
 static void
-_warning_cb (GstTranscoder * self, GError * error, GstStructure * details)
+_warning_cb (GstTranscoder * transcoder, GError * error, GstStructure * details)
 {
   gboolean cant_encode;
-  GstCaps *caps;
+  GstCaps *caps = NULL;
+  gchar *stream_id = NULL;
 
   if (details && gst_structure_get (details, "can-t-encode-stream",
           G_TYPE_BOOLEAN, &cant_encode, "stream-caps", GST_TYPE_CAPS,
-          &caps, NULL)) {
-    gchar *codec_desc = gst_pb_utils_get_codec_description (caps);
+          &caps, "stream-id", G_TYPE_STRING, &stream_id, NULL)) {
+    gchar *source_uri = gst_transcoder_get_source_uri (transcoder);
 
-    warn ("WARNING: Input stream encoded with %s can't be encoded", codec_desc);
+    warn ("WARNING: Input stream %s: WON'T BE ENCODED.\n"
+        "Make sure the encoding settings are valid and that"
+        " any preset you set actually exists.\n"
+        "For more information about that stream, you can inspect"
+        " the source stream with:\n\n"
+        "    gst-discoverer-1.0 -v %s\n", stream_id, source_uri);
     gst_caps_unref (caps);
-    g_free (codec_desc);
+    g_free (stream_id);;
+    g_free (source_uri);;
 
     return;
   }

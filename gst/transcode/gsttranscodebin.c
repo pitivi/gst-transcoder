@@ -158,12 +158,17 @@ pad_added_cb (GstElement * decodebin, GstPad * pad, GstTranscodeBin * self)
   g_signal_emit_by_name (self->encodebin, "request-pad", caps, &sinkpad);
 
   if (sinkpad == NULL) {
+    gchar *stream_id = gst_pad_get_stream_id (pad);
+
     GST_ELEMENT_WARNING_WITH_DETAILS (self, STREAM, FORMAT,
         (NULL), ("Stream with caps: %" GST_PTR_FORMAT " can not be"
             " encoded in the defined encoding formats",
             caps),
         ("can-t-encode-stream", G_TYPE_BOOLEAN, TRUE,
-            "stream-caps", GST_TYPE_CAPS, caps, NULL));
+            "stream-caps", GST_TYPE_CAPS, caps,
+            "stream-id", G_TYPE_STRING, stream_id, NULL));
+
+    g_free (stream_id);
     return;
   }
 
