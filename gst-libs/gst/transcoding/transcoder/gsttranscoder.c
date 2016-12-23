@@ -604,7 +604,6 @@ warning_dispatch (gpointer user_data)
 {
   IssueSignalData *data = user_data;
 
-  GST_ERROR ("Got details: %" GST_PTR_FORMAT, data->details);
   g_signal_emit (data->transcoder, signals[SIGNAL_WARNING], 0, data->err,
       data->details);
 }
@@ -612,9 +611,6 @@ warning_dispatch (gpointer user_data)
 static void
 emit_warning (GstTranscoder * self, GError * err, const GstStructure * details)
 {
-  GST_ERROR_OBJECT (self, "Warning: %s (%s, %d)", err->message,
-      g_quark_to_string (err->domain), err->code);
-
   if (g_signal_handler_find (self, G_SIGNAL_MATCH_ID,
           signals[SIGNAL_WARNING], 0, NULL, NULL, NULL) != 0) {
     IssueSignalData *data = g_new0 (IssueSignalData, 1);
