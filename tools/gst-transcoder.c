@@ -56,6 +56,23 @@ static const gchar *HELP_SUMMARY =
     "those are provided in '.gep' files. You can list\n"
     "available ones using the `--list` argument.\n";
 
+typedef struct
+{
+  gint cpu_usage, rate;
+  gboolean list;
+  GstEncodingProfile *profile;
+  gchar *src_uri, *dest_uri, *encoding_format, *size;
+} Settings;
+
+static void
+settings_init (Settings * settings)
+{
+  settings->cpu_usage = 100;
+  settings->rate = -1;
+  settings->encoding_format = NULL;
+  settings->size = NULL;
+}
+
 static void
 position_updated_cb (GstTranscoder * transcoder, GstClockTime pos)
 {
@@ -98,16 +115,16 @@ get_profiles_of_type (GstEncodingProfile * profile, GType profile_type)
 }
 
 static gboolean
-set_video_size (GstEncodingProfile * profile, const gchar * value)
+set_video_settings (Settings * settings)
 {
   GList *video_profiles, *tmp;
   gchar *p, *tmpstr, **vsize;
   gint width, height;
 
-  if (!value)
+  if (!settings->size)
     return TRUE;
 
-  p = tmpstr = g_strdup (value);
+  p = tmpstr = g_strdup (settings->size);
 
   for (; *p; ++p)
     *p = g_ascii_tolower (*p);
@@ -117,7 +134,7 @@ set_video_size (GstEncodingProfile * profile, const gchar * value)
 
   if (!vsize[1] || vsize[2]) {
     g_strfreev (vsize);
-    error ("Video size should be in the form: WxH, got %s", value);
+    error ("Video size should be in the form: WxH, got %s", settings->size);
 
     return FALSE;
   }
@@ -126,7 +143,7 @@ set_video_size (GstEncodingProfile * profile, const gchar * value)
   height = g_ascii_strtoull (vsize[1], NULL, 10);
   g_strfreev (vsize);
 
-  video_profiles = get_profiles_of_type (profile,
+  video_profiles = get_profiles_of_type (settings->profile,
       GST_TYPE_ENCODING_VIDEO_PROFILE);
   for (tmp = video_profiles; tmp; tmp = tmp->next) {
     GstCaps *rest = gst_encoding_profile_get_restriction (tmp->data);
@@ -146,15 +163,15 @@ set_video_size (GstEncodingProfile * profile, const gchar * value)
 }
 
 static gboolean
-set_audio_rate (GstEncodingProfile * profile, gint rate)
+set_audio_settings (Settings * settings)
 {
   GList *audio_profiles, *tmp;
 
-  if (rate < 0)
+  if (settings->rate < 0)
     return TRUE;
 
   audio_profiles =
-      get_profiles_of_type (profile, GST_TYPE_ENCODING_AUDIO_PROFILE);
+      get_profiles_of_type (settings->profile, GST_TYPE_ENCODING_AUDIO_PROFILE);
   for (tmp = audio_profiles; tmp; tmp = tmp->next) {
     GstCaps *rest = gst_encoding_profile_get_restriction (tmp->data);
 
@@ -163,7 +180,7 @@ set_audio_rate (GstEncodingProfile * profile, gint rate)
     else
       rest = gst_caps_copy (rest);
 
-    gst_caps_set_simple (rest, "rate", G_TYPE_INT, rate, NULL);
+    gst_caps_set_simple (rest, "rate", G_TYPE_INT, settings->rate, NULL);
     gst_encoding_profile_set_restriction (tmp->data, rest);
   }
 
@@ -247,23 +264,22 @@ main (int argc, char *argv[])
 {
   gint res = 0;
   GError *err = NULL;
-  gint cpu_usage = 100, rate = -1;
-  gboolean list;
-  GstEncodingProfile *profile;
   GstTranscoder *transcoder;
-  gchar *src_uri, *dest_uri, *encoding_format = NULL, *size = NULL;
   GOptionContext *ctx;
+  Settings settings = { 0, };
+
+  settings_init (&settings);
 
   GOptionEntry options[] = {
-    {"cpu-usage", 'c', 0, G_OPTION_ARG_INT, &cpu_usage,
+    {"cpu-usage", 'c', 0, G_OPTION_ARG_INT, &settings.cpu_usage,
         "The CPU usage to target in the transcoding process", NULL},
-    {"list-targets", 'l', G_OPTION_ARG_NONE, 0, &list,
+    {"list-targets", 'l', G_OPTION_ARG_NONE, 0, &settings.list,
         "List all encoding targets", NULL},
-    {"size", 's', 0, G_OPTION_ARG_STRING, &size,
+    {"size", 's', 0, G_OPTION_ARG_STRING, &settings.size,
         "set frame size (WxH or abbreviation)", NULL},
-    {"audio-rate", 'r', 0, G_OPTION_ARG_INT, &rate,
+    {"audio-rate", 'r', 0, G_OPTION_ARG_INT, &settings.rate,
         "set audio sampling rate (in Hz)", NULL},
-    {"video-encoder", 'v', 0, G_OPTION_ARG_STRING, &size,
+    {"video-encoder", 'v', 0, G_OPTION_ARG_STRING, &settings.size,
         "The video encoder to use.", NULL},
     {NULL}
   };
@@ -285,7 +301,7 @@ main (int argc, char *argv[])
   }
   gst_pb_utils_init ();
 
-  if (list) {
+  if (settings.list) {
     list_encoding_targets ();
     return 0;
   }
@@ -298,33 +314,35 @@ main (int argc, char *argv[])
   }
   g_option_context_free (ctx);
 
-  src_uri = ensure_uri (argv[1]);
-  dest_uri = ensure_uri (argv[2]);
+  settings.src_uri = ensure_uri (argv[1]);
+  settings.dest_uri = ensure_uri (argv[2]);
 
   if (argc == 3) {
-    encoding_format = get_file_extension (dest_uri);
+    settings.encoding_format = get_file_extension (settings.dest_uri);
 
-    if (!encoding_format)
+    if (!settings.encoding_format)
       goto no_extension;
   } else {
-    encoding_format = argv[3];
+    settings.encoding_format = argv[3];
   }
 
-  profile = create_encoding_profile (encoding_format);
-  if (!profile) {
-    error ("Could not find any encoding format for %s\n", encoding_format);
+  settings.profile = create_encoding_profile (settings.encoding_format);
+  if (!settings.profile) {
+    error ("Could not find any encoding format for %s\n",
+        settings.encoding_format);
     warn ("You can list available targets using %s --list", argv[0]);
     res = 1;
     goto done;
   }
 
-  set_video_size (profile, size);
-  set_audio_rate (profile, rate);
+  set_video_settings (&settings);
+  set_audio_settings (&settings);
 
-  transcoder = gst_transcoder_new_full (src_uri, dest_uri, profile, NULL);
+  transcoder = gst_transcoder_new_full (settings.src_uri, settings.dest_uri,
+      settings.profile, NULL);
   gst_transcoder_set_avoid_reencoding (transcoder, TRUE);
 
-  gst_transcoder_set_cpu_usage (transcoder, cpu_usage);
+  gst_transcoder_set_cpu_usage (transcoder, settings.cpu_usage);
   g_signal_connect (transcoder, "position-updated",
       G_CALLBACK (position_updated_cb), NULL);
   g_signal_connect (transcoder, "warning", G_CALLBACK (_warning_cb), NULL);
@@ -338,13 +356,14 @@ main (int argc, char *argv[])
     ok ("\nDONE.");
 
 done:
-  g_free (dest_uri);
-  g_free (src_uri);
+  g_free (settings.dest_uri);
+  g_free (settings.src_uri);
+
   return res;
 
 no_extension:
   error ("No <encoding-format> specified and no extension"
-      " available in the output target: %s", dest_uri);
+      " available in the output target: %s", settings.dest_uri);
   res = 1;
 
   goto done;
