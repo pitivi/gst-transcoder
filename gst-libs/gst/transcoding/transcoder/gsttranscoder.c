@@ -653,6 +653,7 @@ error_cb (G_GNUC_UNUSED GstBus * bus, GstMessage * msg, gpointer user_data)
       "msg-error", G_TYPE_STRING, message, NULL);
   emit_error (self, g_error_copy (err), details);
 
+  gst_structure_free (details);
   g_clear_error (&err);
   g_free (debug);
   g_free (name);
@@ -1068,7 +1069,7 @@ _error_cb (GstTranscoder * self, GError * error, GstStructure * details,
   g_mutex_lock (&data->m);
   data->done = TRUE;
   if (data->user_error && (*data->user_error) == NULL)
-    g_propagate_error (data->user_error, g_error_copy (error));
+    g_propagate_error (data->user_error, error);
   g_cond_broadcast (&data->cond);
   g_mutex_unlock (&data->m);
 }
