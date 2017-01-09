@@ -52,7 +52,10 @@ gst_transcoder = shared_library('gsttranscoder-' + apiversion,
   c_args: ['-Wno-pedantic'],
   soversion : '0')
 
-gst_transcoder_dep = declare_dependency(link_with: gst_transcoder)
+incl = include_directories('gst-libs')
+gst_transcoder_dep = declare_dependency(link_with: gst_transcoder,
+  dependencies : [gst_dep, gst_pbutils_dep],
+  include_directories : incl)
 
 gnome = import ('gnome')
 girtargets = gnome.generate_gir(gst_transcoder,
@@ -127,3 +130,14 @@ foreach path_targets : encoding_targets
   etargets = path_targets.get(1)
   install_data(sources: etargets, install_dir: dir)
 endforeach
+
+gtkdoc = find_program('gtkdoc-scan', required : false)
+if build_machine.system() != 'windows'
+  if gtkdoc.found()
+    subdir('docs/libs')
+  else
+    message('Not building documentation as gtk-doc was not found')
+  endif
+else
+  message('Disabling gtk-doc while building on Windows')
+endif

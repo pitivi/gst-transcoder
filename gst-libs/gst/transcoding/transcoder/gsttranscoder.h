@@ -41,7 +41,7 @@ GType           gst_transcoder_get_type                   (void);
 
 GstTranscoder * gst_transcoder_new                        (const gchar * source_uri,
                                                            const gchar * dest_uri,
-                                                           const gchar * encoding_target);
+                                                           const gchar * encoding_profile);
 
 GstTranscoder * gst_transcoder_new_full                   (const gchar * source_uri,
                                                            const gchar * dest_uri,

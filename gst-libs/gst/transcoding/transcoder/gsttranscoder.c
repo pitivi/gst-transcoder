@@ -21,7 +21,8 @@
 
 /**
  * SECTION:gsttranscoder
- * @short_description: GStreamer Transcoder API
+ * @short_description: High level API to transcode media files
+ * from one format to any other format using the GStreamer framework.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -69,7 +70,6 @@ enum
 {
   SIGNAL_POSITION_UPDATED,
   SIGNAL_DURATION_CHANGED,
-  SIGNAL_BUFFERING,
   SIGNAL_DONE,
   SIGNAL_ERROR,
   SIGNAL_WARNING,
@@ -1017,16 +1017,21 @@ create_encoding_profile (const gchar * pname)
 
 /**
  * gst_transcoder_new:
+ * @source_uri: The URI of the media stream to transcode
+ * @dest_uri: The URI of the destination of the transcoded stream
+ * @encoding_profile: The serialized #GstEncodingProfile defining the output
+ * format. Have a look at the #GstEncodingProfile documentation to find more
+ * about the serialization format.
  *
  * Returns: a new #GstTranscoder instance
  */
 GstTranscoder *
 gst_transcoder_new (const gchar * source_uri,
-    const gchar * dest_uri, const gchar * encoding_target)
+    const gchar * dest_uri, const gchar * encoding_profile)
 {
   GstEncodingProfile *profile;
 
-  profile = create_encoding_profile (encoding_target);
+  profile = create_encoding_profile (encoding_profile);
 
   if (!profile)
     return NULL;
@@ -1034,6 +1039,18 @@ gst_transcoder_new (const gchar * source_uri,
   return gst_transcoder_new_full (source_uri, dest_uri, profile, NULL);
 }
 
+/**
+ * gst_transcoder_new_full:
+ * @source_uri: The URI of the media stream to transcode
+ * @dest_uri: The URI of the destination of the transcoded stream
+ * @profile: The #GstEncodingProfile defining the output format
+ * have a look at the #GstEncodingProfile documentation to find more
+ * about the serialization format.
+ * @signal_dispatcher: The #GstTranscoderSignalDispatcher to be used
+ * to dispatch the various signals.
+ *
+ * Returns: a new #GstTranscoder instance
+ */
 GstTranscoder *
 gst_transcoder_new_full (const gchar * source_uri,
     const gchar * dest_uri, GstEncodingProfile * profile,

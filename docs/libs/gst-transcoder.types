@@ -1,0 +1,4 @@
+#include <gst/gst.h>
+#include <gst/transcoding/transcoder/gsttranscoder.h>
+
+gst_transcoder_get_type
