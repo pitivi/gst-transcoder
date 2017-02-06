@@ -57,21 +57,25 @@ gst_transcoder_dep = declare_dependency(link_with: gst_transcoder,
   dependencies : [gst_dep, gst_pbutils_dep],
   include_directories : incl)
 
+gir = find_program('g-ir-scanner', required : false)
 gnome = import ('gnome')
-girtargets = gnome.generate_gir(gst_transcoder,
-  sources : ['gst-libs/gst/transcoding/transcoder/gsttranscoder.h',
-             'gst-libs/gst/transcoding/transcoder/gsttranscoder.c'],
-  nsversion : apiversion,
-  namespace : 'GstTranscoder',
-  identifier_prefix : 'Gst',
-  symbol_prefix : 'gst_',
-  includes : ['GObject-2.0',
-              'Gst-' + apiversion,
-              'GstPbutils-' + apiversion],
-  dependencies: [gst_dep],
-  install : true,
-  extra_args : ['--add-init-section=extern gboolean gst_init(gint *argc, gchar **argv); gst_init(NULL,NULL);']
-)
+build_gir = gir.found() and not meson.is_cross_build() and not get_option('disable_introspection')
+if build_gir
+  girtargets = gnome.generate_gir(gst_transcoder,
+    sources : ['gst-libs/gst/transcoding/transcoder/gsttranscoder.h',
+               'gst-libs/gst/transcoding/transcoder/gsttranscoder.c'],
+    nsversion : apiversion,
+    namespace : 'GstTranscoder',
+    identifier_prefix : 'Gst',
+    symbol_prefix : 'gst_',
+    includes : ['GObject-2.0',
+                'Gst-' + apiversion,
+                'GstPbutils-' + apiversion],
+    dependencies: [gst_dep],
+    install : true,
+    extra_args : ['--add-init-section=extern gboolean gst_init(gint *argc, gchar **argv); gst_init(NULL,NULL);']
+  )
+endif
 
 pkg_mod = import('pkgconfig')
 pkg_mod.generate(libraries : gst_transcoder,
