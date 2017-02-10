@@ -123,6 +123,7 @@ encoding_targets = [
                       'data/targets/file-extension/avi.gep',],
   ],
   ['online-services', ['data/targets/online-service/youtube.gep',]],
+  ['device', ['data/targets/device/dvd.gep',]],
 ]
 
 foreach path_targets : encoding_targets
