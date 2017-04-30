@@ -132,13 +132,14 @@ foreach path_targets : encoding_targets
   install_data(sources: etargets, install_dir: dir)
 endforeach
 
-gtkdoc = find_program('gtkdoc-scan', required : false)
-if build_machine.system() != 'windows'
-  if gtkdoc.found()
+if build_machine.system() == 'windows'
+  message('Disabling doc while building on Windows')
+elif get_option('disable_doc')
+  message('doc is disabled via options')
+else
+  if find_program('gtkdoc-scan', required : false).found()
     subdir('docs/libs')
   else
     message('Not building documentation as gtk-doc was not found')
   endif
-else
-  message('Disabling gtk-doc while building on Windows')
 endif
