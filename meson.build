@@ -89,7 +89,7 @@ gst_c_args = ['-DHAVE_CONFIG_H',
 
 configure_file(output : 'config.h', configuration : cdata)
 
-gst_transcoder_plugin = shared_library('gsttranscoderplugin',
+gst_transcoder_plugin = shared_library('gsttranscode',
   'gst/transcode/gsttranscodebin.c',
   'gst/transcode/gst-cpu-throttling-clock.c',
   'gst/transcode/gsturitranscodebin.c',
