@@ -357,6 +357,7 @@ gst_uri_transcode_bin_dispose (GObject * object)
 
   g_clear_object (&self->video_filter);
   g_clear_object (&self->audio_filter);
+  g_clear_object (&self->cpu_clock);
 
   G_OBJECT_CLASS (gst_uri_transcode_bin_parent_class)->dispose (object);
 }
