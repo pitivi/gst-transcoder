@@ -161,6 +161,18 @@ _get_internal_time (GstClock * clock)
 }
 
 static void
+gst_cpu_throttling_clock_dispose (GObject * object)
+{
+  GstCpuThrottlingClock *self = GST_CPU_THROTTLING_CLOCK (object);
+
+  if (self->priv->evaluate_wait_time) {
+    gst_clock_id_unschedule (self->priv->evaluate_wait_time);
+    gst_clock_id_unref (self->priv->evaluate_wait_time);
+    self->priv->evaluate_wait_time = 0;
+  }
+}
+
+static void
 gst_cpu_throttling_clock_class_init (GstCpuThrottlingClockClass * klass)
 {
   GObjectClass *oclass = G_OBJECT_CLASS (klass);
@@ -173,6 +185,7 @@ gst_cpu_throttling_clock_class_init (GstCpuThrottlingClockClass * klass)
 
   oclass->get_property = gst_cpu_throttling_clock_get_property;
   oclass->set_property = gst_cpu_throttling_clock_set_property;
+  oclass->dispose = gst_cpu_throttling_clock_dispose;
 
   /**
    * GstCpuThrottlingClock:cpu-usage:
