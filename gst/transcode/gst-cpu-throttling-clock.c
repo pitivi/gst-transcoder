@@ -79,9 +79,9 @@ gst_cpu_throttling_clock_set_property (GObject * object,
   switch (property_id) {
     case PROP_CPU_USAGE:
       self->priv->wanted_cpu_usage = g_value_get_uint (value);
-      break;
       if (self->priv->wanted_cpu_usage == 0)
         self->priv->wanted_cpu_usage = 100;
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
       break;
