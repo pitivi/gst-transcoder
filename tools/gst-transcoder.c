@@ -62,6 +62,7 @@ typedef struct
   gboolean list;
   GstEncodingProfile *profile;
   gchar *src_uri, *dest_uri, *encoding_format, *size;
+  gchar *framerate;
 } Settings;
 
 static void
@@ -71,6 +72,7 @@ settings_init (Settings * settings)
   settings->rate = -1;
   settings->encoding_format = NULL;
   settings->size = NULL;
+  settings->framerate = NULL;
 }
 
 static void
@@ -119,29 +121,41 @@ set_video_settings (Settings * settings)
 {
   GList *video_profiles, *tmp;
   gchar *p, *tmpstr, **vsize;
-  gint width, height;
+  gint width = 0, height = 0;
+  GValue framerate = G_VALUE_INIT;
 
-  if (!settings->size)
+  if (!settings->size && !settings->framerate)
     return TRUE;
 
-  p = tmpstr = g_strdup (settings->size);
+  if (settings->size) {
+    p = tmpstr = g_strdup (settings->size);
 
-  for (; *p; ++p)
-    *p = g_ascii_tolower (*p);
+    for (; *p; ++p)
+      *p = g_ascii_tolower (*p);
 
-  vsize = g_strsplit (tmpstr, "x", -1);
-  g_free (tmpstr);
+    vsize = g_strsplit (tmpstr, "x", -1);
+    g_free (tmpstr);
 
-  if (!vsize[1] || vsize[2]) {
+    if (!vsize[1] || vsize[2]) {
+      g_strfreev (vsize);
+      error ("Video size should be in the form: WxH, got %s", settings->size);
+
+      return FALSE;
+    }
+
+    width = g_ascii_strtoull (vsize[0], NULL, 0);
+    height = g_ascii_strtoull (vsize[1], NULL, 10);
     g_strfreev (vsize);
-    error ("Video size should be in the form: WxH, got %s", settings->size);
-
-    return FALSE;
   }
 
-  width = g_ascii_strtoull (vsize[0], NULL, 0);
-  height = g_ascii_strtoull (vsize[1], NULL, 10);
-  g_strfreev (vsize);
+  if (settings->framerate) {
+    g_value_init (&framerate, GST_TYPE_FRACTION);
+    if (!gst_value_deserialize (&framerate, settings->framerate)) {
+      error ("Video framerate should be either a fraction or an integer"
+          " not: %s", settings->framerate);
+      return FALSE;
+    }
+  }
 
   video_profiles = get_profiles_of_type (settings->profile,
       GST_TYPE_ENCODING_VIDEO_PROFILE);
@@ -153,8 +167,12 @@ set_video_settings (Settings * settings)
     else
       rest = gst_caps_copy (rest);
 
-    gst_caps_set_simple (rest, "width", G_TYPE_INT, width,
-        "height", G_TYPE_INT, height, NULL);
+    if (settings->size) {
+      gst_caps_set_simple (rest, "width", G_TYPE_INT, width,
+          "height", G_TYPE_INT, height, NULL);
+    }
+    if (settings->framerate)
+      gst_caps_set_value (rest, "framerate", &framerate);
 
     gst_encoding_profile_set_restriction (tmp->data, rest);
   }
@@ -286,6 +304,9 @@ main (int argc, char *argv[])
         "set frame size (WxH or abbreviation)", NULL},
     {"audio-rate", 'r', 0, G_OPTION_ARG_INT, &settings.rate,
         "set audio sampling rate (in Hz)", NULL},
+    {"framerate", 'f', 0, G_OPTION_ARG_STRING, &settings.framerate,
+        "set video framerate as a fraction (24/1 for 24fps)"
+          " or a single number (24 for 24fps))", NULL},
     {"video-encoder", 'v', 0, G_OPTION_ARG_STRING, &settings.size,
         "The video encoder to use.", NULL},
     {NULL}
@@ -342,8 +363,15 @@ main (int argc, char *argv[])
     goto done;
   }
 
-  set_video_settings (&settings);
-  set_audio_settings (&settings);
+  if (!set_video_settings (&settings)) {
+    res = -1;
+    goto done;
+  }
+
+  if (!set_audio_settings (&settings)) {
+    res = -1;
+    goto done;
+  }
 
   transcoder = gst_transcoder_new_full (settings.src_uri, settings.dest_uri,
       settings.profile, NULL);
