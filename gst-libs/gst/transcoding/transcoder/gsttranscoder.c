@@ -1033,9 +1033,6 @@ gst_transcoder_new (const gchar * source_uri,
 
   profile = create_encoding_profile (encoding_profile);
 
-  if (!profile)
-    return NULL;
-
   return gst_transcoder_new_full (source_uri, dest_uri, profile, NULL);
 }
 
@@ -1062,7 +1059,6 @@ gst_transcoder_new_full (const gchar * source_uri,
 
   g_return_val_if_fail (source_uri, NULL);
   g_return_val_if_fail (dest_uri, NULL);
-  g_return_val_if_fail (profile, NULL);
 
   return g_object_new (GST_TYPE_TRANSCODER, "src-uri", source_uri,
       "dest-uri", dest_uri, "profile", profile,
@@ -1117,7 +1113,6 @@ gst_transcoder_run (GstTranscoder * self, GError ** error)
   g_mutex_init (&data.m);
   g_cond_init (&data.cond);
 
-  data.user_error = error;
   g_signal_connect (self, "error", G_CALLBACK (_error_cb), &data);
   g_signal_connect (self, "done", G_CALLBACK (_done_cb), &data);
   gst_transcoder_run_async (self);
@@ -1127,6 +1122,12 @@ gst_transcoder_run (GstTranscoder * self, GError ** error)
     g_cond_wait (&data.cond, &data.m);
   }
   g_mutex_unlock (&data.m);
+
+  if (data.user_error) {
+    g_propagate_error (error, *data.user_error);
+
+    return FALSE;
+  }
 
   return TRUE;
 }
@@ -1146,6 +1147,13 @@ gst_transcoder_run_async (GstTranscoder * self)
   GstStateChangeReturn state_ret;
 
   GST_DEBUG_OBJECT (self, "Play");
+
+  if (!self->profile) {
+    emit_error (self, g_error_new (GST_TRANSCODER_ERROR,
+            GST_TRANSCODER_ERROR_FAILED, "No \"profile\" provided"), NULL);
+
+    return;
+  }
 
   self->target_state = GST_STATE_PLAYING;
   state_ret = gst_element_set_state (self->transcodebin, GST_STATE_PLAYING);
