@@ -19,6 +19,6 @@ restriction=audio/x-raw,channels=6,rate={48000,96000};audio/x-raw,channels=2,rat
 [streamprofile-default-1]
 parent=default
 type=video
-format=video/x-h264
+format=video/x-h264,profile=high
 preset=Profile YouTube
 pass=0
