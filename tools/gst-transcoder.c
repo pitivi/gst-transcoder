@@ -355,6 +355,7 @@ main (int argc, char *argv[])
   }
 
   settings.profile = create_encoding_profile (settings.encoding_format);
+
   if (!settings.profile) {
     error ("Could not find any encoding format for %s\n",
         settings.encoding_format);
@@ -363,6 +364,8 @@ main (int argc, char *argv[])
     goto done;
   }
 
+  g_print ("Encoding to:\n\n");
+  describe_encoding_profile (settings.profile);
   if (!set_video_settings (&settings)) {
     res = -1;
     goto done;

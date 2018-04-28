@@ -155,3 +155,48 @@ create_encoding_profile (const gchar * pname)
 
   return profile;
 }
+
+static const gchar *
+get_profile_type (GstEncodingProfile * profile)
+{
+  if (GST_IS_ENCODING_CONTAINER_PROFILE (profile))
+    return "Container";
+  else if (GST_IS_ENCODING_AUDIO_PROFILE (profile))
+    return "Audio";
+  else if (GST_IS_ENCODING_VIDEO_PROFILE (profile))
+    return "Video";
+  else
+    return "Unkonwn";
+}
+
+static void
+print_profile (GstEncodingProfile * profile, const gchar * prefix)
+{
+  const gchar *name = gst_encoding_profile_get_name (profile);
+  const gchar *desc = gst_encoding_profile_get_description (profile);
+  GstCaps *format = gst_encoding_profile_get_format (profile);
+  gchar *capsstr = gst_caps_to_string (format);
+
+  g_print ("%s%s: %s%s%s%s%s%s\n", prefix, get_profile_type (profile),
+      name ? name : capsstr, desc ? ": " : "", desc ? desc : "",
+      name ? " (" : "", name ? capsstr : "", name ? ")" : "");
+
+  g_free (capsstr);
+}
+
+void
+describe_encoding_profile (GstEncodingProfile * profile)
+{
+  g_return_if_fail (GST_IS_ENCODING_PROFILE (profile));
+
+  print_profile (profile, "  ");
+  if (GST_IS_ENCODING_CONTAINER_PROFILE (profile)) {
+    const GList *tmp;
+
+    for (tmp =
+        gst_encoding_container_profile_get_profiles
+        (GST_ENCODING_CONTAINER_PROFILE (profile)); tmp; tmp = tmp->next)
+      print_profile (tmp->data, "    - ");
+  }
+
+}
