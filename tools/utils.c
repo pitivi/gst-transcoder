@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "utils.h"
+#include <gst/pbutils/descriptions.h>
 
 void
 print (GstDebugColorFlags c, gboolean err, gboolean nline, const gchar * format,
@@ -175,7 +176,7 @@ print_profile (GstEncodingProfile * profile, const gchar * prefix)
   const gchar *name = gst_encoding_profile_get_name (profile);
   const gchar *desc = gst_encoding_profile_get_description (profile);
   GstCaps *format = gst_encoding_profile_get_format (profile);
-  gchar *capsstr = gst_caps_to_string (format);
+  gchar *capsstr = gst_pb_utils_get_codec_description (format);
 
   g_print ("%s%s: %s%s%s%s%s%s\n", prefix, get_profile_type (profile),
       name ? name : capsstr, desc ? ": " : "", desc ? desc : "",
