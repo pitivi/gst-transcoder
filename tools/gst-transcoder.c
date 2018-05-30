@@ -54,7 +54,7 @@ static const gchar *HELP_SUMMARY =
     "\n"
     "Encoding targets describe well known formats which\n"
     "those are provided in '.gep' files. You can list\n"
-    "available ones using the `--list` argument.\n";
+    "available ones using the `--list-targets` argument.\n";
 
 typedef struct
 {
@@ -315,7 +315,7 @@ main (int argc, char *argv[])
   g_set_prgname ("gst-transcoder");
 
   ctx = g_option_context_new ("<source uri> <destination uri> "
-      "[<encoding target name[/<encoding profile name>]]");
+      "[<encoding format>[/<encoding profile name>]]");
   g_option_context_set_summary (ctx, HELP_SUMMARY);
 
   g_option_context_add_main_entries (ctx, options, NULL);
@@ -359,7 +359,7 @@ main (int argc, char *argv[])
   if (!settings.profile) {
     error ("Could not find any encoding format for %s\n",
         settings.encoding_format);
-    warn ("You can list available targets using %s --list", argv[0]);
+    warn ("You can list available targets using %s --list-targets", argv[0]);
     res = 1;
     goto done;
   }

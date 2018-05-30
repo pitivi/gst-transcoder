@@ -176,13 +176,18 @@ print_profile (GstEncodingProfile * profile, const gchar * prefix)
   const gchar *name = gst_encoding_profile_get_name (profile);
   const gchar *desc = gst_encoding_profile_get_description (profile);
   GstCaps *format = gst_encoding_profile_get_format (profile);
-  gchar *capsstr = gst_pb_utils_get_codec_description (format);
+  gchar *capsdesc;
+
+  if (gst_caps_is_fixed (format))
+    capsdesc = gst_pb_utils_get_codec_description (format);
+  else
+    capsdesc = gst_caps_to_string (format);
 
   g_print ("%s%s: %s%s%s%s%s%s\n", prefix, get_profile_type (profile),
-      name ? name : capsstr, desc ? ": " : "", desc ? desc : "",
-      name ? " (" : "", name ? capsstr : "", name ? ")" : "");
+      name ? name : capsdesc, desc ? ": " : "", desc ? desc : "",
+      name ? " (" : "", name ? capsdesc : "", name ? ")" : "");
 
-  g_free (capsstr);
+  g_free (capsdesc);
 }
 
 void
