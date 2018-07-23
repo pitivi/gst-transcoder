@@ -104,7 +104,8 @@ _insert_filter (GstTranscodeBin * self, GstPad * sinkpad, GstPad * pad,
     GstCaps * caps)
 {
   GstPad *filter_src = NULL, *filter_sink = NULL;
-  GstElement *filter = NULL;
+  GstElement* filter = NULL;
+  GstObject *filter_parent;
 
   if (self->video_filter &&
       !g_strcmp0 (gst_structure_get_name (gst_caps_get_structure (caps, 0)),
@@ -118,6 +119,15 @@ _insert_filter (GstTranscodeBin * self, GstPad * sinkpad, GstPad * pad,
 
   if (!filter)
     return pad;
+
+  if ((filter_parent = gst_object_get_parent (GST_OBJECT (filter)))) {
+      GST_WARNING_OBJECT (self, "Filter already in use (inside %" GST_PTR_FORMAT ").",
+        filter_parent);
+      GST_FIXME_OBJECT(self, "Handle transcoding several streams of a same kind.");
+      gst_object_unref(filter_parent);
+
+      return pad;
+  }
 
   /* We are guaranteed filters only have 1 unique sinkpad and srcpad */
   GST_OBJECT_LOCK (filter);
@@ -177,24 +187,34 @@ pad_added_cb (GstElement * decodebin, GstPad * pad, GstTranscodeBin * self)
 
   pad = _insert_filter (self, sinkpad, pad, caps);
   lret = gst_pad_link (pad, sinkpad);
-  if (G_UNLIKELY (lret != GST_PAD_LINK_OK)) {
-    GstCaps *othercaps = gst_pad_query_caps (sinkpad, NULL);
-    caps = gst_pad_get_current_caps (pad);
+  switch (lret) {
+    case GST_PAD_LINK_OK:
+        break;
+    case GST_PAD_LINK_WAS_LINKED:
+        GST_FIXME_OBJECT(self, "Pad %" GST_PTR_FORMAT " was already linked",
+          sinkpad);
+        break;
+    default:
+    {
+        GstCaps* othercaps = gst_pad_query_caps(sinkpad, NULL);
+        caps = gst_pad_get_current_caps(pad);
 
-    GST_ELEMENT_ERROR_WITH_DETAILS (self, CORE, PAD,
-        (NULL),
-        ("Couldn't link pads:\n    %" GST_PTR_FORMAT ": %" GST_PTR_FORMAT
-            "\nand:\n" "    %" GST_PTR_FORMAT ": %" GST_PTR_FORMAT "\n\n",
-            pad, caps, sinkpad, othercaps),
-        ("linking-error", GST_TYPE_PAD_LINK_RETURN, lret,
-            "source-pad", GST_TYPE_PAD, pad,
-            "source-caps", GST_TYPE_CAPS, caps,
-            "sink-pad", GST_TYPE_PAD, sinkpad,
-            "sink-caps", GST_TYPE_CAPS, othercaps, NULL));
+        GST_ELEMENT_ERROR_WITH_DETAILS(self, CORE, PAD,
+            (NULL),
+            ("Couldn't link pads:\n    %" GST_PTR_FORMAT ": %" GST_PTR_FORMAT
+             "\nand:\n"
+             "    %" GST_PTR_FORMAT ": %" GST_PTR_FORMAT "\n\n",
+                pad, caps, sinkpad, othercaps),
+            ("linking-error", GST_TYPE_PAD_LINK_RETURN, lret,
+                "source-pad", GST_TYPE_PAD, pad,
+                "source-caps", GST_TYPE_CAPS, caps,
+                "sink-pad", GST_TYPE_PAD, sinkpad,
+                "sink-caps", GST_TYPE_CAPS, othercaps, NULL));
 
-    gst_caps_unref (caps);
-    if (othercaps)
-      gst_caps_unref (othercaps);
+        gst_caps_unref(caps);
+        if (othercaps)
+            gst_caps_unref(othercaps);
+    }
   }
 
   gst_object_unref (sinkpad);
