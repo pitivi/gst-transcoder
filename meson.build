@@ -1,5 +1,5 @@
 project('gst-transcoder', 'c',
-        version : '1.15.0.1',
+        version : '1.17.0.1',
         meson_version : '>= 0.36.0')
 
 gst_version = meson.project_version()
